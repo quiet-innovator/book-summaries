@@ -6,17 +6,46 @@ import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
 import { getCollection } from 'astro:content';
 import FormattedDate from '../../components/FormattedDate.astro';
 
-let posts = (await getCollection('blog'));
-const postSlugs = posts.map(post => `/blog/${post.id}/`);
+let posts = await getCollection('books');
 
-// Sort by newest first by default
+// Fetch views from Supabase
+const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+
+async function fetchViews(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    return data.length > 0 ? data[0].views : 0;
+  } catch (e) {
+    console.error("Error fetching views for", slug, e);
+    return 0;
+  }
+}
+
+posts = await Promise.all(posts.map(async (post) => {
+  const views = await fetchViews(post.id);
+  return { ...post, data: { ...post.data, views } };
+}));
+
+const postSlugs = posts.map(post => `/books/${post.id}/`);
 posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const mostViewed = [...posts]
+  .filter(post => post.data.views > 0)
+  .sort((a, b) => b.data.views - a.data.views)
+  .slice(0, 5);
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    <BaseHead title={`Books | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
     <style>
       main {
         width: 960px;
@@ -113,12 +142,44 @@ posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
         margin: 0;
         color: rgb(var(--gray));
       }
+      .most-viewed {
+        margin-top: 4rem;
+      }
+      .most-viewed h2 {
+        margin-bottom: 1rem;
+      }
+      .most-viewed ul {
+        display: block;
+      }
+      .most-viewed li {
+        margin-bottom: 0.75rem;
+      }
+
+      /* Dark mode support */
+      body.dark .title {
+        color: white;
+      }
+      body.dark .date {
+        color: #ccc;
+      }
+      body.dark .tag {
+        background-color: #333;
+        color: #ddd;
+      }
+      body.dark .filter-tags button {
+        background: #333;
+        color: white;
+      }
+      body.dark .filter-tags button:hover {
+        background: #444;
+      }
     </style>
   </head>
   <body>
     <Header />
     <main>
       <section>
+        <h1>Books</h1>
         <div class="controls">
           <input
             id="search"
@@ -144,7 +205,7 @@ posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
                 data-tags={post.data.tags?.join(',') || ''}
                 data-views={post.data.views || 0}
                 data-date={post.data.pubDate}>
-              <a href={`/blog/${post.id}/`} onclick="trackView('/blog/${post.id}/')">
+              <a href={`/books/${post.id}/`} onclick={`trackView('/books/${post.id}/')`}>
                 <img width={720} height={360} src={post.data.heroImage} alt="" />
                 <h4 class="title">{post.data.title}</h4>
                 <p class="date">
@@ -162,13 +223,26 @@ posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
           ))}
         </ul>
 
+        <!-- 🔥 MOST VIEWED SECTION -->
+        <div class="most-viewed">
+          <h2>🔥 Most Viewed Book Summaries</h2>
+          <ul>
+            {mostViewed.map(post => (
+              <li>
+                <a href={`/books/${post.id}/`}><strong>{post.data.title}</strong></a>
+                <span style="color: gray;"> — 👁️ {post.data.views} views</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <script is:inline>
           const postUrls = JSON.parse(`${JSON.stringify(postSlugs)}`);
 
-          function goToRandomPost() {
+          window.goToRandomPost = function () {
             const randomIndex = Math.floor(Math.random() * postUrls.length);
             window.location.href = postUrls[randomIndex];
-          }
+          };
 
           function filterPosts() {
             const input = document.getElementById("search").value.toLowerCase();
@@ -202,8 +276,12 @@ posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
           }
 
           function trackView(slug) {
-            fetch(`/api/track-view?slug=${encodeURIComponent(slug)}`, {
-              method: 'POST'
+            fetch('/api/track-view', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ slug })
             });
           }
         </script>

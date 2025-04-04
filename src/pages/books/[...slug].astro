@@ -1,0 +1,59 @@
+---
+import { type CollectionEntry, getCollection } from 'astro:content';
+import BlogPost from '../../layouts/BlogPost.astro';
+import { render } from 'astro:content';
+
+// Supabase credentials
+const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+
+export async function getStaticPaths() {
+	const posts = await getCollection('books');
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: post,
+	}));
+}
+
+type Props = CollectionEntry<'books'>;
+const post = Astro.props;
+const { Content, remarkPluginFrontmatter } = await render(post);
+
+// Fetch views from Supabase
+async function fetchViews(slug) {
+	try {
+		const res = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
+			headers: {
+				apikey: SUPABASE_ANON_KEY,
+				Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+			}
+		});
+		const data = await res.json();
+		return data.length > 0 ? data[0].views : 0;
+	} catch (err) {
+		console.error("Error fetching views", err);
+		return 0;
+	}
+}
+
+const views = await fetchViews(post.id);
+
+// Estimate word count and reading time
+const plainText = Content.toString();
+const wordCount = plainText.split(/\s+/).length;
+const readingTime = Math.ceil(wordCount / 225); // Avg 225 words/min
+---
+
+<BlogPost {...post.data} views={views} wordCount={wordCount} readingTime={readingTime}>
+	<Content />
+
+	<!-- 👁️ Show view count -->
+	<p style="text-align: right; margin-top: 2rem;">👁️ {views} views</p>
+
+	<!-- 📊 Track view -->
+	<script is:inline>
+		fetch(`/api/track-view?slug=${encodeURIComponent(location.pathname)}`, {
+			method: 'POST'
+		});
+	</script>
+</BlogPost>
