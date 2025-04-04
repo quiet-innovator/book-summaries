@@ -1,16 +1,18 @@
 ---
-import BaseHead from '../../components/BaseHead.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 import { getCollection } from 'astro:content';
-import FormattedDate from '../../components/FormattedDate.astro';
+import FormattedDate from '../components/FormattedDate.astro';
 
+// Supabase credentials
 const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
 
 let posts = await getCollection('blog');
 
+// Fetch view count for each blog post from Supabase
 async function fetchViews(slug) {
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
@@ -32,6 +34,8 @@ posts = await Promise.all(posts.map(async (post) => {
   return { ...post, data: { ...post.data, views } };
 }));
 
+// Sort posts by newest first
+posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 const postSlugs = posts.map(post => `/blog/${post.id}/`);
 ---
 
@@ -39,13 +43,125 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
 <html lang="en">
   <head>
     <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-    <!-- styles remain unchanged -->
+    <style>
+      main {
+        width: 960px;
+        margin: 0 auto;
+      }
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .search-bar {
+        flex: 1;
+        padding: 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        outline: none;
+      }
+      .dropdown {
+        padding: 0.6rem;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      .random-btn {
+        background-color: #0070f3;
+        color: white;
+        border: none;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .random-btn:hover {
+        background-color: #005ad1;
+      }
+      .tags {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .tag {
+        background-color: #eee;
+        padding: 0.25rem 0.6rem;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        color: #333;
+        text-transform: capitalize;
+      }
+      .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .filter-tags button {
+        border: none;
+        background: #f0f0f0;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+      .filter-tags button:hover {
+        background: #ddd;
+      }
+      ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      ul li {
+        width: calc(50% - 1rem);
+      }
+      ul li img {
+        margin-bottom: 0.5rem;
+        border-radius: 12px;
+        width: 100%;
+      }
+      ul li a {
+        text-decoration: none;
+      }
+      .title {
+        margin: 0;
+        color: rgb(var(--black));
+        line-height: 1;
+      }
+      .date {
+        margin: 0;
+        color: rgb(var(--gray));
+      }
+    </style>
   </head>
   <body>
     <Header />
     <main>
       <section>
-        <!-- controls and filter markup remain unchanged -->
+        <div class="controls">
+          <input
+            id="search"
+            type="text"
+            placeholder="Search book summaries..."
+            class="search-bar"
+            oninput="filterPosts()" />
+          <select id="sortOptions" class="dropdown" onchange="sortPosts()">
+            <option value="newest">Sort by Newest</option>
+            <option value="oldest">Sort by Oldest</option>
+            <option value="popular">Sort by Popularity</option>
+          </select>
+          <button class="random-btn" onclick="goToRandomPost()">🎲 Random Book</button>
+        </div>
+
+        <div class="filter-tags" id="tagFilter"></div>
+
         <ul id="postList">
           {posts.map((post) => (
             <li class="post-item"
@@ -72,7 +188,52 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
             </li>
           ))}
         </ul>
-        <!-- scripts remain unchanged -->
+
+        <script is:inline>
+          const postUrls = JSON.parse(`${JSON.stringify(postSlugs)}`);
+
+          function goToRandomPost() {
+            const randomIndex = Math.floor(Math.random() * postUrls.length);
+            window.location.href = postUrls[randomIndex];
+          }
+
+          function filterPosts() {
+            const input = document.getElementById("search").value.toLowerCase();
+            const items = document.querySelectorAll("#postList .post-item");
+
+            items.forEach(item => {
+              const title = item.getAttribute("data-title");
+              const desc = item.getAttribute("data-description");
+              const visible = title.includes(input) || desc.includes(input);
+              item.style.display = visible ? "" : "none";
+            });
+          }
+
+          function sortPosts() {
+            const sortOption = document.getElementById("sortOptions").value;
+            const list = document.getElementById("postList");
+            const items = Array.from(list.children);
+
+            const sorted = items.sort((a, b) => {
+              if (sortOption === "oldest") {
+                return new Date(a.dataset.date) - new Date(b.dataset.date);
+              } else if (sortOption === "popular") {
+                return b.dataset.views - a.dataset.views;
+              } else {
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+              }
+            });
+
+            list.innerHTML = "";
+            sorted.forEach(item => list.appendChild(item));
+          }
+
+          function trackView(slug) {
+            fetch(`/api/track-view?slug=${encodeURIComponent(slug)}`, {
+              method: 'POST'
+            });
+          }
+        </script>
       </section>
     </main>
     <Footer />

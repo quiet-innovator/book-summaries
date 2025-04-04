@@ -2,18 +2,11 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-
-// https://astro.build/config
-export default defineConfig({
-	site: 'https://example.com',
-	integrations: [mdx(), sitemap()],
-});
-
-import { defineConfig } from 'astro/config';
 import dotenv from 'dotenv';
 
-dotenv.config(); // ✅ Load .env variables
+dotenv.config(); // ✅ Load environment variables from .env file
 
 export default defineConfig({
-  // Your Astro config
+  site: 'http://localhost:4321', // Replace with your live domain when ready
+  integrations: [mdx(), sitemap()],
 });
