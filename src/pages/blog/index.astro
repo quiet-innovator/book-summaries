@@ -6,11 +6,11 @@ import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
 import { getCollection } from 'astro:content';
 import FormattedDate from '../../components/FormattedDate.astro';
 
-const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
-
+let posts = (await getCollection('blog'));
 const postSlugs = posts.map(post => `/blog/${post.id}/`);
+
+// Sort by newest first by default
+posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---
 
 <!doctype html>
@@ -22,46 +22,44 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
         width: 960px;
         margin: 0 auto;
       }
-
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
       .search-bar {
-        width: 100%;
+        flex: 1;
         padding: 0.75rem;
-        margin-bottom: 1rem;
         font-size: 1rem;
         border: 1px solid #ccc;
         border-radius: 8px;
         outline: none;
       }
-
-      .search-bar:focus {
-        border-color: #0070f3;
-        box-shadow: 0 0 0 2px rgba(0,112,243,0.2);
+      .dropdown {
+        padding: 0.6rem;
+        border-radius: 8px;
+        font-size: 1rem;
       }
-
       .random-btn {
-        display: inline-block;
         background-color: #0070f3;
         color: white;
         border: none;
         padding: 0.6rem 1rem;
         border-radius: 8px;
         font-size: 1rem;
-        margin-bottom: 1.5rem;
         cursor: pointer;
-        transition: background-color 0.2s ease;
       }
-
       .random-btn:hover {
         background-color: #005ad1;
       }
-
       .tags {
         margin-top: 0.5rem;
         display: flex;
         flex-wrap: wrap;
         gap: 0.4rem;
       }
-
       .tag {
         background-color: #eee;
         padding: 0.25rem 0.6rem;
@@ -70,7 +68,23 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
         color: #333;
         text-transform: capitalize;
       }
-
+      .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .filter-tags button {
+        border: none;
+        background: #f0f0f0;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+      .filter-tags button:hover {
+        background: #ddd;
+      }
       ul {
         display: flex;
         flex-wrap: wrap;
@@ -79,69 +93,25 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
         margin: 0;
         padding: 0;
       }
-
       ul li {
         width: calc(50% - 1rem);
       }
-
-      ul li:first-child {
-        width: 100%;
-        margin-bottom: 1rem;
-        text-align: center;
-      }
-
-      ul li:first-child img {
-        width: 100%;
-      }
-
-      ul li:first-child .title {
-        font-size: 2.369rem;
-      }
-
       ul li img {
         margin-bottom: 0.5rem;
         border-radius: 12px;
+        width: 100%;
       }
-
       ul li a {
-        display: block;
         text-decoration: none;
       }
-
       .title {
         margin: 0;
         color: rgb(var(--black));
         line-height: 1;
       }
-
       .date {
         margin: 0;
         color: rgb(var(--gray));
-      }
-
-      ul li a:hover h4,
-      ul li a:hover .date {
-        color: rgb(var(--accent));
-      }
-
-      ul a:hover img {
-        box-shadow: var(--box-shadow);
-      }
-
-      @media (max-width: 720px) {
-        ul {
-          gap: 0.5em;
-        }
-        ul li {
-          width: 100%;
-          text-align: center;
-        }
-        ul li:first-child {
-          margin-bottom: 0;
-        }
-        ul li:first-child .title {
-          font-size: 1.563em;
-        }
       }
     </style>
   </head>
@@ -149,38 +119,47 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
     <Header />
     <main>
       <section>
-        <input
-          id="search"
-          type="text"
-          placeholder="Search book summaries..."
-          class="search-bar"
-          oninput="filterPosts()" />
+        <div class="controls">
+          <input
+            id="search"
+            type="text"
+            placeholder="Search book summaries..."
+            class="search-bar"
+            oninput="filterPosts()" />
+          <select id="sortOptions" class="dropdown" onchange="sortPosts()">
+            <option value="newest">Sort by Newest</option>
+            <option value="oldest">Sort by Oldest</option>
+            <option value="popular">Sort by Popularity</option>
+          </select>
+          <button class="random-btn" onclick="goToRandomPost()">🎲 Random Book</button>
+        </div>
 
-        <button class="random-btn" onclick="goToRandomPost()">🎲 Random Book</button>
+        <div class="filter-tags" id="tagFilter"></div>
 
         <ul id="postList">
-          {
-            posts.map((post) => (
-              <li class="post-item"
-                  data-title={post.data.title.toLowerCase()}
-                  data-description={post.data.description?.toLowerCase() || ''}>
-                <a href={`/blog/${post.id}/`}>
-                  <img width={720} height={360} src={post.data.heroImage} alt="" />
-                  <h4 class="title">{post.data.title}</h4>
-                  <p class="date">
-                    <FormattedDate date={post.data.pubDate} />
+          {posts.map((post) => (
+            <li class="post-item"
+                data-title={post.data.title.toLowerCase()}
+                data-description={post.data.description?.toLowerCase() || ''}
+                data-tags={post.data.tags?.join(',') || ''}
+                data-views={post.data.views || 0}
+                data-date={post.data.pubDate}>
+              <a href={`/blog/${post.id}/`} onclick="trackView('/blog/${post.id}/')">
+                <img width={720} height={360} src={post.data.heroImage} alt="" />
+                <h4 class="title">{post.data.title}</h4>
+                <p class="date">
+                  <FormattedDate date={post.data.pubDate} />
+                </p>
+                {post.data.tags && (
+                  <p class="tags">
+                    {post.data.tags.map(tag => (
+                      <span class="tag">{tag}</span>
+                    ))}
                   </p>
-                  {post.data.tags && (
-                    <p class="tags">
-                      {post.data.tags.map(tag => (
-                        <span class="tag">{tag}</span>
-                      ))}
-                    </p>
-                  )}
-                </a>
-              </li>
-            ))
-          }
+                )}
+              </a>
+            </li>
+          ))}
         </ul>
 
         <script is:inline>
@@ -200,6 +179,31 @@ const postSlugs = posts.map(post => `/blog/${post.id}/`);
               const desc = item.getAttribute("data-description");
               const visible = title.includes(input) || desc.includes(input);
               item.style.display = visible ? "" : "none";
+            });
+          }
+
+          function sortPosts() {
+            const sortOption = document.getElementById("sortOptions").value;
+            const list = document.getElementById("postList");
+            const items = Array.from(list.children);
+
+            const sorted = items.sort((a, b) => {
+              if (sortOption === "oldest") {
+                return new Date(a.dataset.date) - new Date(b.dataset.date);
+              } else if (sortOption === "popular") {
+                return b.dataset.views - a.dataset.views;
+              } else {
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+              }
+            });
+
+            list.innerHTML = "";
+            sorted.forEach(item => list.appendChild(item));
+          }
+
+          function trackView(slug) {
+            fetch(`/api/track-view?slug=${encodeURIComponent(slug)}`, {
+              method: 'POST'
             });
           }
         </script>
