@@ -17,7 +17,7 @@ export async function getStaticPaths() {
 
 type Props = CollectionEntry<'books'>;
 const post = Astro.props;
-const { Content, remarkPluginFrontmatter } = await render(post);
+const { Content } = await render(post);
 
 // Fetch views from Supabase
 async function fetchViews(slug) {
@@ -38,9 +38,9 @@ async function fetchViews(slug) {
 
 const views = await fetchViews(post.id);
 
-// Estimate word count and reading time
-const plainText = Content.toString();
-const wordCount = plainText.split(/\s+/).length;
+// ✅ Correct word count and estimated reading time
+const plainText = post.body;
+const wordCount = plainText.trim().split(/\s+/).length;
 const readingTime = Math.ceil(wordCount / 225); // Avg 225 words/min
 ---
 
@@ -52,8 +52,13 @@ const readingTime = Math.ceil(wordCount / 225); // Avg 225 words/min
 
 	<!-- 📊 Track view -->
 	<script is:inline>
-		fetch(`/api/track-view?slug=${encodeURIComponent(location.pathname)}`, {
+		const slug = location.pathname;
+		fetch(`/api/track-view?slug=${encodeURIComponent(slug)}`, {
 			method: 'POST'
+		}).then(res => {
+			console.log("Tracked view for", slug, res.status);
+		}).catch(err => {
+			console.error("View tracking failed:", err);
 		});
 	</script>
 </BlogPost>

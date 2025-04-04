@@ -5,12 +5,6 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 
-type Props = CollectionEntry<'blog'>['data'] & {
-  views?: number;
-  wordCount?: number;
-  readingTime?: number;
-};
-
 const {
   title,
   description,
@@ -21,6 +15,9 @@ const {
   wordCount,
   readingTime
 } = Astro.props;
+
+const encodedURL = encodeURIComponent(Astro.url);
+const encodedTitle = encodeURIComponent(title);
 ---
 
 <html lang="en">
@@ -69,13 +66,45 @@ const {
         font-size: 0.95rem;
         color: rgb(var(--gray));
         margin-top: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 2rem;
       }
       .reading-meta {
         text-align: center;
         font-size: 0.95rem;
         color: rgb(var(--gray));
         margin-bottom: 0.5rem;
+      }
+      .social-icons {
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .social-icons a {
+        margin: 0 0.4rem;
+        color: inherit;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .social-icons img {
+        width: 20px;
+        height: 20px;
+      }
+      #copy-toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 9999;
+      }
+      #copy-toast.show {
+        opacity: 1;
       }
     </style>
   </head>
@@ -106,6 +135,31 @@ const {
             )}
 
             <div class="views">👁️ {views} views</div>
+
+            <div class="social-icons">
+              <a href="#" onclick="copyLink()" title="Copy Link">
+                <img src="https://api.iconify.design/lucide/link.svg" alt="Copy link" />
+              </a>
+              <a href={`https://twitter.com/intent/tweet?url=${encodedURL}&text=${encodedTitle}`} target="_blank" title="Share on Twitter">
+                <img src="https://api.iconify.design/lucide/twitter.svg" alt="Twitter" />
+              </a>
+              <a href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodedURL}`} target="_blank" title="Share on LinkedIn">
+                <img src="https://api.iconify.design/lucide/linkedin.svg" alt="LinkedIn" />
+              </a>
+              <a href={`https://bsky.app/intent/compose?text=${encodedTitle}%20${encodedURL}`} target="_blank" title="Share on Bluesky">
+                <img src="https://api.iconify.design/lucide/send.svg" alt="Bluesky" />
+              </a>
+              <a href={`https://pinterest.com/pin/create/button/?url=${encodedURL}&description=${encodedTitle}`} target="_blank" title="Share on Pinterest">
+                <img src="https://api.iconify.design/lucide/pin.svg" alt="Pinterest" />
+              </a>
+              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodedURL}`} target="_blank" title="Share on Facebook">
+                <img src="https://api.iconify.design/lucide/facebook.svg" alt="Facebook" />
+              </a>
+              <a href="https://instagram.com" target="_blank" title="Instagram">
+                <img src="https://api.iconify.design/lucide/instagram.svg" alt="Instagram" />
+              </a>
+            </div>
+
             <hr />
           </div>
 
@@ -114,5 +168,15 @@ const {
       </article>
     </main>
     <Footer />
+    <div id="copy-toast">🔗 Link copied!</div>
+
+    <script is:inline>
+      function copyLink() {
+        navigator.clipboard.writeText(window.location.href);
+        const toast = document.getElementById("copy-toast");
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
+      }
+    </script>
   </body>
 </html>

@@ -96,6 +96,11 @@ const mostViewed = [...posts]
         font-size: 0.75rem;
         color: #333;
         text-transform: capitalize;
+        cursor: pointer;
+      }
+      .active-tag {
+        background-color: #0070f3;
+        color: white;
       }
       .filter-tags {
         display: flex;
@@ -154,8 +159,6 @@ const mostViewed = [...posts]
       .most-viewed li {
         margin-bottom: 0.75rem;
       }
-
-      /* Dark mode support */
       body.dark .title {
         color: white;
       }
@@ -165,6 +168,10 @@ const mostViewed = [...posts]
       body.dark .tag {
         background-color: #333;
         color: #ddd;
+      }
+      body.dark .active-tag {
+        background-color: #ccc;
+        color: black;
       }
       body.dark .filter-tags button {
         background: #333;
@@ -193,9 +200,8 @@ const mostViewed = [...posts]
             <option value="popular">Sort by Popularity</option>
           </select>
           <button class="random-btn" onclick="goToRandomPost()">🎲 Random Book</button>
+          <button class="random-btn" onclick="clearTagFilter()">Clear Filter</button>
         </div>
-
-        <div class="filter-tags" id="tagFilter"></div>
 
         <ul id="postList">
           {posts.map((post) => (
@@ -214,7 +220,7 @@ const mostViewed = [...posts]
                 {post.data.tags && (
                   <p class="tags">
                     {post.data.tags.map(tag => (
-                      <span class="tag">{tag}</span>
+                      <span class="tag" onclick={`filterByTag('${tag}')`} data-tag={tag}>{tag}</span>
                     ))}
                   </p>
                 )}
@@ -283,6 +289,34 @@ const mostViewed = [...posts]
               },
               body: JSON.stringify({ slug })
             });
+          }
+
+          let selectedTag = null;
+
+          function filterByTag(tag) {
+            selectedTag = tag;
+            const items = document.querySelectorAll("#postList .post-item");
+
+            items.forEach(item => {
+              const tags = item.getAttribute("data-tags").toLowerCase();
+              const visible = tags.includes(tag.toLowerCase());
+              item.style.display = visible ? "" : "none";
+            });
+
+            document.querySelectorAll(".tag").forEach(el => {
+              el.classList.remove("active-tag");
+              if (el.getAttribute("data-tag") === tag) {
+                el.classList.add("active-tag");
+              }
+            });
+          }
+
+          function clearTagFilter() {
+            selectedTag = null;
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              item.style.display = "";
+            });
+            document.querySelectorAll(".tag").forEach(tag => tag.classList.remove("active-tag"));
           }
         </script>
       </section>

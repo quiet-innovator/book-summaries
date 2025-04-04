@@ -1,0 +1,86 @@
+---
+import { getCollection } from 'astro:content';
+
+const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+
+let posts = await getCollection('books');
+
+async function fetchViews(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    return data.length > 0 ? data[0].views : 0;
+  } catch (err) {
+    console.error("Error fetching views for", slug, err);
+    return 0;
+  }
+}
+
+posts = await Promise.all(posts.map(async post => {
+  const views = await fetchViews(post.id);
+  return { ...post, data: { ...post.data, views } };
+}));
+
+posts = posts.sort((a, b) => b.data.views - a.data.views);
+---
+
+<html lang="en">
+  <head>
+    <title>Analytics Dashboard</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 2rem;
+        max-width: 960px;
+        margin: auto;
+      }
+      h1 {
+        margin-bottom: 1rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      th, td {
+        padding: 0.75rem;
+        border: 1px solid #ccc;
+        text-align: left;
+      }
+      th {
+        background-color: #f5f5f5;
+      }
+      a {
+        color: #0070f3;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1> Book Views Dashboard</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Slug</th>
+          <th>Views</th>
+        </tr>
+      </thead>
+      <tbody>
+        {posts.map(post => (
+          <tr>
+            <td>{post.data.title}</td>
+            <td><a href={`/books/${post.id}/`} target="_blank">{post.id}</a></td>
+            <td>{post.data.views}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </body>
+</html>
