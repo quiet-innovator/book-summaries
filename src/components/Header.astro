@@ -1,4 +1,5 @@
 ---
+// src/components/Header.astro
 import HeaderLink from './HeaderLink.astro';
 import { SITE_TITLE } from '../consts';
 ---
@@ -25,28 +26,45 @@ import { SITE_TITLE } from '../consts';
     </div>
 
     <div class="social-links">
+      <!-- Buy Me a Coffee icon (now larger) -->
+      <a
+        href="https://buymeacoffee.com/minutereads"
+        target="_blank"
+        rel="noopener"
+        title="Buy Me a Coffee"
+      >
+        <img
+          src="https://api.iconify.design/lucide/coffee.svg"
+          alt="Buy me a coffee"
+          class="coffee-icon"
+        />
+      </a>
+
+      <!-- Copy link -->
       <a href="#" onclick="copySiteLink()" title="Copy Site Link">
         <img src="https://api.iconify.design/lucide/link.svg" alt="Copy link" />
       </a>
-      <a href="https://twitter.com/minutereads" target="_blank" title="Twitter">
+
+      <!-- Other social icons -->
+      <a href="https://twitter.com/minutereads" target="_blank" rel="noopener" title="Twitter">
         <img src="https://api.iconify.design/lucide/twitter.svg" alt="Twitter" />
       </a>
-      <a href="https://www.linkedin.com" target="_blank" title="LinkedIn">
+      <a href="https://www.linkedin.com" target="_blank" rel="noopener" title="LinkedIn">
         <img src="https://api.iconify.design/lucide/linkedin.svg" alt="LinkedIn" />
       </a>
-      <a href="https://youtube.com" target="_blank" title="YouTube">
+      <a href="https://youtube.com" target="_blank" rel="noopener" title="YouTube">
         <img src="https://api.iconify.design/lucide/youtube.svg" alt="YouTube" />
       </a>
-      <a href="https://bsky.app" target="_blank" title="Bluesky">
+      <a href="https://bsky.app" target="_blank" rel="noopener" title="Bluesky">
         <img src="https://api.iconify.design/lucide/send.svg" alt="Bluesky" />
       </a>
-      <a href="https://pinterest.com" target="_blank" title="Pinterest">
+      <a href="https://pinterest.com" target="_blank" rel="noopener" title="Pinterest">
         <img src="https://api.iconify.design/lucide/pin.svg" alt="Pinterest" />
       </a>
-      <a href="https://facebook.com" target="_blank" title="Facebook">
+      <a href="https://facebook.com" target="_blank" rel="noopener" title="Facebook">
         <img src="https://api.iconify.design/lucide/facebook.svg" alt="Facebook" />
       </a>
-      <a href="https://instagram.com" target="_blank" title="Instagram">
+      <a href="https://instagram.com" target="_blank" rel="noopener" title="Instagram">
         <img src="https://api.iconify.design/lucide/instagram.svg" alt="Instagram" />
       </a>
     </div>
@@ -101,6 +119,11 @@ import { SITE_TITLE } from '../consts';
   .social-links img {
     width: 20px;
     height: 20px;
+  }
+  /* Make the coffee icon a bit larger */
+  .social-links img.coffee-icon {
+    width: 24px;
+    height: 24px;
   }
   #theme-toggle {
     background: none;

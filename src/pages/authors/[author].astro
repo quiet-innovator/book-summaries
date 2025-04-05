@@ -6,16 +6,37 @@ import Footer from '../../components/Footer.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import { SITE_TITLE } from '../../consts';
 
+// 1. Required for dynamic route generation
+export async function getStaticPaths() {
+  const books = await getCollection('books');
+
+  // Extract unique author slugs
+  const authors = Array.from(new Set(
+    books
+      .map((book) => book.data.author)
+      .filter(Boolean) // Remove undefined/null
+      .map((name) => name.toLowerCase().replace(/\s+/g, '-'))
+  ));
+
+  return authors.map((author) => ({
+    params: { author }
+  }));
+}
+
+// 2. Page logic
 const { author } = Astro.params;
 const books = await getCollection('books');
 
-const filtered = books.filter(post => post.data.author?.toLowerCase().replace(/\s+/g, '-') === author);
+// Normalize and filter by author slug
+const filtered = books.filter(post =>
+  post.data.author?.toLowerCase().replace(/\s+/g, '-') === author
+);
 ---
 
 <html lang="en">
   <head>
-    <title>{author} | {SITE_TITLE}</title>
-    <meta name="description" content={`Books by ${author}`} />
+    <title>{author.replace(/-/g, ' ')} | {SITE_TITLE}</title>
+    <meta name="description" content={`Books by ${author.replace(/-/g, ' ')}`} />
   </head>
   <body>
     <Header />
