@@ -1,6 +1,6 @@
 ---
 title: "The Lean Startup"
-pubDate: "2025-04-04"
+pubDate: "2025-04-01"
 description: "Summary and key takeaways from the book 'The Lean Startup' by Eric Ries."
 author: "Eric Ries"
 tags: ["book summary", "AI summary", "nonfiction"]

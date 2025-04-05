@@ -1,14 +1,972 @@
 ---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../components/FormattedDate.astro';
+
+let posts = await getCollection('books');
+
+const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_KEY";
+
+async function fetchViews(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    return data.length > 0 ? data[0].views : 0;
+  } catch (e) {
+    console.error("Error fetching views for", slug, e);
+    return 0;
+  }
+}
+
+async function fetchRatings(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ratings?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    if (data.length > 0) {
+      return {
+        average: parseFloat((data[0].total_rating / data[0].rating_count).toFixed(1)),
+        count: data[0].rating_count
+      };
+    }
+    return { average: 0, count: 0 };
+  } catch (e) {
+    console.error("Error fetching ratings for", slug, e);
+    return { average: 0, count: 0 };
+  }
+}
+
+posts = await Promise.all(posts.map(async (post) => {
+  const views = await fetchViews(post.id);
+  const ratings = await fetchRatings(post.id);
+  return { ...post, data: { ...post.data, views, ratings } };
+}));
+
+const postSlugs = posts.map(post => `/books/${post.id}/`);
+posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const authors = [...new Set(posts.map(p => p.data.author).filter(Boolean))];
+const allTags = [...new Set(posts.flatMap(p => p.data.tags || []))];
+
+// Get most popular books for meta description enhancement
+const popularBooks = [...posts].sort((a, b) => (b.data.views || 0) - (a.data.views || 0)).slice(0, 3);
+const popularTitles = popularBooks.map(book => book.data.title).join(", ");
+const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular books including ${popularTitles} and more.`;
 ---
 
-<!doctype html>
 <html lang="en">
   <head>
-    <meta http-equiv="refresh" content="0; url=/books" />
-    <meta name="robots" content="noindex">
-    <title>Redirecting to /books...</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9N7PJ70RGJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-9N7PJ70RGJ');
+    </script>
+    
+    <BaseHead title={`Book Summaries | ${SITE_TITLE}`} description={enhancedDescription} />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="keywords" content={`book summaries, book reviews, ${allTags.join(', ')}, literature, reading guides`} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={new URL('/books', Astro.site).toString()} />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL('/books', Astro.site).toString()} />
+    <meta property="og:title" content={`Book Summaries | ${SITE_TITLE}`} />
+    <meta property="og:description" content={enhancedDescription} />
+    <meta property="og:image" content={new URL('/og-books-image.jpg', Astro.site).toString()} />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={new URL('/books', Astro.site).toString()} />
+    <meta property="twitter:title" content={`Book Summaries | ${SITE_TITLE}`} />
+    <meta property="twitter:description" content={enhancedDescription} />
+    <meta property="twitter:image" content={new URL('/og-books-image.jpg', Astro.site).toString()} />
+    
+    <!-- Schema.org structured data for Collection Page -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "headline": "Book Summaries",
+        "description": "${enhancedDescription}",
+        "url": "${new URL('/books', Astro.site).toString()}",
+        "mainEntity": {
+          "@type": "ItemList",
+          "itemListElement": [
+            ${posts.slice(0, 10).map((post, index) => `{
+              "@type": "ListItem",
+              "position": ${index + 1},
+              "url": "${new URL(`/books/${post.id}/`, Astro.site).toString()}",
+              "name": "${post.data.title}"
+            }`).join(',')}
+          ]
+        }
+      }
+    </script>
+    
+    <style>
+      main {
+        width: 960px;
+        max-width: 100%;
+        padding: 0 1rem;
+        margin: 0 auto;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .search-bar {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        outline: none;
+        min-width: 300px;
+      }
+      .dropdown,
+      .random-btn,
+      .clear-btn,
+      .top-rated-btn,
+      .bookmarks-btn,
+      .filter-tags button,
+      .tag {
+        border: none;
+        border-radius: 16px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      .dropdown {
+        background-color: #f0f0f0;
+      }
+      .random-btn,
+      .clear-btn,
+      .top-rated-btn,
+      .bookmarks-btn {
+        background-color: #0070f3;
+        color: white;
+      }
+      .random-btn:hover,
+      .clear-btn:hover,
+      .top-rated-btn:hover,
+      .bookmarks-btn:hover {
+        opacity: 0.9;
+      }
+      .tag.active-tag,
+      .filter-tags button.active-tag {
+        background-color: #0070f3;
+        color: white;
+      }
+      .tag {
+        background-color: #eee;
+        margin-right: 0.4rem;
+        margin-bottom: 0.4rem;
+        display: inline-block;
+      }
+      .filter-section {
+        margin-bottom: 1.5rem;
+      }
+      .filter-tags {
+        margin-bottom: 1rem;
+      }
+      ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      ul li {
+        width: calc(50% - 1rem);
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+        position: relative;
+      }
+      .book-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+      .views-count {
+        font-size: 0.9rem;
+        color: #666;
+      }
+      ul li h3 {
+        margin: 0.25rem 0;
+        font-weight: 700;
+        color: black;
+      }
+      ul li .author {
+        margin: 0;
+        font-style: italic;
+        color: #0070f3;  /* Changed author color to blue */
+      }
+      ul li .date {
+        margin-bottom: 0.75rem;
+        color: #333;
+        font-size: 0.95rem;
+      }
+      .bookmark-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .bookmark-icon {
+        width: 24px;
+        height: 24px;
+        stroke: #ccc;
+        fill: none;
+        stroke-width: 2px;
+        transition: all 0.2s ease;
+      }
+      .bookmark-btn.active .bookmark-icon {
+        fill: #f0c14b;
+        stroke: #f0c14b;
+      }
+      .bookmark-btn:hover .bookmark-icon {
+        stroke: #999;
+      }
+      .bookmark-btn.active:hover .bookmark-icon {
+        fill: #e0b13b;
+        stroke: #e0b13b;
+      }
+      .rating-display {
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.5rem;
+      }
+      .stars {
+        color: #f0c14b;
+        margin-right: 0.3rem;
+        cursor: pointer;
+      }
+      .star {
+        cursor: pointer;
+        display: inline-block;
+        transition: transform 0.1s;
+      }
+      .star:hover {
+        transform: scale(1.2);
+      }
+      .rating-count {
+        font-size: 0.8rem;
+        opacity: 0.7;
+      }
+      .bookmarks-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .bookmarks-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .bookmarks-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      .export-btn {
+        background-color: #34a853;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+      }
+      .empty-bookmarks {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+      body.dark ul li h3 {
+        color: white;
+      }
+      body.dark ul li .author {
+        color: #3291ff;  /* Blue color for dark mode */
+      }
+      body.dark ul li .date {
+        color: white;
+      }
+      body.dark .views-count {
+        color: #aaa;
+      }
+      body.dark .bookmarks-content {
+        background-color: #333;
+        color: white;
+      }
+      body.dark .bookmark-icon {
+        stroke: #aaa;
+      }
+      a {
+        text-decoration: none;
+      }
+      .page-heading {
+        margin-bottom: 1.5rem;
+      }
+      .no-results {
+        text-align: center;
+        padding: 2rem;
+        font-size: 1.2rem;
+        color: #666;
+        display: none;
+      }
+      
+      @media (max-width: 768px) {
+        ul li {
+          width: 100%;
+        }
+      }
+    </style>
   </head>
   <body>
-    <p>Redirecting to <a href="/books">/books</a>...</p>
+    <Header />
+    <main>
+      <section>
+        <div class="page-heading">
+	        <br>
+          <h1>Book Summaries</h1>
+        </div>
+
+        <div class="controls">
+          <input id="search" class="search-bar" placeholder="Search book summaries..." aria-label="Search books" oninput="filterPosts()" />
+          <select id="sortOptions" class="dropdown" aria-label="Sort options" onchange="sortPosts()">
+            <option value="newest">Sort by Newest</option>
+            <option value="oldest">Sort by Oldest</option>
+            <option value="popular">Sort by Popularity</option>
+            <option value="rated">Sort by Rating</option>
+          </select>
+          <button class="random-btn" id="randomBook" aria-label="Random Book">🎲 Random</button>
+          <button class="top-rated-btn" id="topRatedBtn" aria-label="Top Rated">⭐ Top Rated</button>
+          <button class="bookmarks-btn" id="bookmarksBtn" aria-label="Bookmarks">Bookmarks</button>
+          <button class="clear-btn" id="clearFiltersBtn" aria-label="Clear Filters">Clear Filter</button>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-tags">
+            <strong>Filter by author:</strong>
+            {authors.map(author => (
+              <button class="author-filter" data-author={author} aria-label={`Filter by author: ${author}`}>{author}</button>
+            ))}
+          </div>
+          
+          <div class="filter-tags">
+            <strong>Popular tags:</strong>
+            {allTags.slice(0, 8).map(tag => (
+              <button class="category-filter tag" data-tag={tag} aria-label={`Filter by tag: ${tag}`}>{tag}</button>
+            ))}
+          </div>
+        </div>
+
+        <div id="noResults" class="no-results">
+          No matching books found. Try adjusting your search or filters.
+        </div>
+
+        <ul id="postList">
+          {posts.map(post => (
+            <li class="post-item"
+                data-title={post.data.title.toLowerCase()}
+                data-description={post.data.description?.toLowerCase() || ''}
+                data-tags={post.data.tags?.join(',').toLowerCase() || ''}
+                data-views={post.data.views || 0}
+                data-rating={post.data.ratings?.average || 0}
+                data-rating-count={post.data.ratings?.count || 0}
+                data-date={post.data.pubDate.toISOString()}
+                data-author={post.data.author}
+                data-slug={post.id}>
+              <button class="bookmark-btn" data-slug={post.id} aria-label="Bookmark this book" title="Save for later">
+                <svg class="bookmark-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M5 3h14a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2z"></path>
+                </svg>
+              </button>
+              <a href={`/books/${post.id}/`}>
+                <h3>{post.data.title}</h3>
+                {post.data.author && <p class="author">By {post.data.author}</p>}
+              </a>
+              <div class="book-meta">
+                <div class="date">
+                  <FormattedDate date={post.data.pubDate} />
+                </div>
+                <div class="views-count">
+                  <span>👁️ {post.data.views || 0} views</span>
+                </div>
+              </div>
+              <div class="rating-display" data-slug={post.id}>
+                <span class="stars">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span class="star" data-rating={i + 1} data-slug={post.id}>
+                      {i < Math.round(post.data.ratings?.average || 0) ? '★' : '☆'}
+                    </span>
+                  ))}
+                </span>
+                <span>{post.data.ratings?.average || 0}</span>
+                <span class="rating-count">({post.data.ratings?.count || 0} ratings)</span>
+              </div>
+              {post.data.tags && (
+                <div>
+                  {post.data.tags.map(tag => (
+                    <button class="tag" data-tag={tag} aria-label={`Filter by tag: ${tag}`}>{tag}</button>
+                  ))}
+                </div>
+              )}
+              
+              <script type="application/ld+json" set:html={JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Book",
+                "name": post.data.title,
+                "author": post.data.author ? {
+                  "@type": "Person",
+                  "name": post.data.author
+                } : undefined,
+                "url": new URL(`/books/${post.id}/`, Astro.site).toString(),
+                "datePublished": post.data.pubDate.toISOString(),
+                "description": post.data.description || "",
+                "genre": post.data.tags || [],
+                "keywords": post.data.tags?.join(', ') || "",
+                "publisher": SITE_TITLE,
+                "aggregateRating": post.data.ratings && post.data.ratings.count > 0 ? {
+                  "@type": "AggregateRating",
+                  "ratingValue": post.data.ratings.average,
+                  "ratingCount": post.data.ratings.count,
+                  "bestRating": "5",
+                  "worstRating": "1"
+                } : undefined,
+                "workExample": {
+                  "@type": "Book",
+                  "bookFormat": "http://schema.org/EBook"
+                },
+                "review": {
+                  "@type": "Review",
+                  "reviewBody": post.data.description || "A summary of " + post.data.title,
+                  "author": {
+                    "@type": "Organization",
+                    "name": SITE_TITLE
+                  }
+                }
+              })}></script>
+            </li>
+          ))}
+        </ul>
+
+        <!-- Bookmarks Modal -->
+        <div id="bookmarksModal" class="bookmarks-modal">
+          <div class="bookmarks-content">
+            <div class="bookmarks-header">
+              <h2>Your Bookmarked Summaries</h2>
+              <div>
+                <button id="exportBookmarks" class="export-btn">Export List</button>
+                <button class="close-modal" id="closeBookmarks">×</button>
+              </div>
+            </div>
+            <div id="bookmarksList">
+              <!-- Bookmarks will be added here by JavaScript -->
+              <div class="empty-bookmarks">You haven't bookmarked any book summaries yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <script define:vars={{ postSlugs, posts: posts.map(post => ({ 
+          id: post.id, 
+          title: post.data.title, 
+          author: post.data.author, 
+          date: post.data.pubDate.toISOString(),
+          rating: post.data.ratings?.average || 0
+        })) }}>
+          document.addEventListener("DOMContentLoaded", () => {
+            // Initialize bookmarks from localStorage
+            initializeBookmarks();
+            
+            // Set up random book button
+            const randomButton = document.getElementById("randomBook");
+            if (randomButton && postSlugs.length > 0) {
+              randomButton.addEventListener("click", () => {
+                const randomUrl = postSlugs[Math.floor(Math.random() * postSlugs.length)];
+                if (randomUrl) window.location.href = randomUrl;
+              });
+            }
+            
+            // Add event listeners for top rated button
+            const topRatedBtn = document.getElementById("topRatedBtn");
+            if (topRatedBtn) {
+              topRatedBtn.addEventListener("click", () => {
+                document.getElementById("sortOptions").value = "rated";
+                sortPosts();
+              });
+            }
+            
+            // Add event listeners for tag buttons
+            document.querySelectorAll(".tag").forEach(tag => {
+              tag.addEventListener("click", (e) => {
+                e.preventDefault();
+                const tagValue = tag.getAttribute("data-tag");
+                filterByTag(tagValue);
+              });
+            });
+            
+            // Add event listeners for category filter buttons
+            document.querySelectorAll(".category-filter").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const tagValue = btn.getAttribute("data-tag");
+                filterByTag(tagValue);
+              });
+            });
+            
+            // Add event listeners for author filter buttons
+            document.querySelectorAll(".author-filter").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const authorValue = btn.getAttribute("data-author");
+                filterByAuthor(authorValue);
+              });
+            });
+            
+            // Add event listener for clear filters button
+            const clearButton = document.getElementById("clearFiltersBtn");
+            if (clearButton) {
+              clearButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                clearFilters();
+              });
+            }
+            
+            // Add event listener for sort dropdown
+            const sortDropdown = document.getElementById("sortOptions");
+            if (sortDropdown) {
+              sortDropdown.addEventListener("change", () => {
+                sortPosts();
+              });
+            }
+            
+            // Bookmark functionality
+            document.querySelectorAll(".bookmark-btn").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const slug = btn.getAttribute("data-slug");
+                toggleBookmark(slug, btn);
+              });
+            });
+            
+            // Rating stars functionality
+            document.querySelectorAll(".star").forEach(star => {
+              star.addEventListener("click", (e) => {
+                e.preventDefault();
+                const rating = parseInt(star.getAttribute("data-rating"));
+                const slug = star.getAttribute("data-slug");
+                submitRating(slug, rating);
+              });
+            });
+            
+            // Bookmarks modal
+            const bookmarksBtn = document.getElementById("bookmarksBtn");
+            const bookmarksModal = document.getElementById("bookmarksModal");
+            const closeBookmarks = document.getElementById("closeBookmarks");
+            const exportBookmarks = document.getElementById("exportBookmarks");
+            
+            if (bookmarksBtn && bookmarksModal) {
+              bookmarksBtn.addEventListener("click", () => {
+                renderBookmarksList();
+                bookmarksModal.style.display = "flex";
+              });
+            }
+            
+            if (closeBookmarks && bookmarksModal) {
+              closeBookmarks.addEventListener("click", () => {
+                bookmarksModal.style.display = "none";
+              });
+            }
+            
+            // Close modal when clicking outside
+            bookmarksModal?.addEventListener("click", (e) => {
+              if (e.target === bookmarksModal) {
+                bookmarksModal.style.display = "none";
+              }
+            });
+            
+            if (exportBookmarks) {
+              exportBookmarks.addEventListener("click", exportBookmarksList);
+            }
+          });
+
+          function filterPosts() {
+            const input = document.getElementById("search").value.toLowerCase();
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const title = item.getAttribute("data-title");
+              const desc = item.getAttribute("data-description");
+              const tags = item.getAttribute("data-tags");
+              const author = item.getAttribute("data-author")?.toLowerCase();
+              
+              const shouldShow = title.includes(input) || 
+                                 desc.includes(input) || 
+                                 tags.includes(input) ||
+                                 (author && author.includes(input));
+              
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            // Show/hide no results message
+            document.getElementById("noResults").style.display = visibleCount === 0 ? 'block' : 'none';
+          }
+
+          function sortPosts() {
+            const sortBy = document.getElementById("sortOptions").value;
+            const list = document.getElementById("postList");
+            const items = Array.from(list.children);
+            
+            const sorted = items.sort((a, b) => {
+              if (sortBy === 'popular') {
+                return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+              }
+              if (sortBy === 'oldest') {
+                return new Date(a.dataset.date) - new Date(b.dataset.date);
+              }
+              if (sortBy === 'rated') {
+                const ratingA = parseFloat(a.dataset.rating);
+                const ratingB = parseFloat(b.dataset.rating);
+                const countA = parseInt(a.dataset.ratingCount);
+                const countB = parseInt(b.dataset.ratingCount);
+                
+                // If ratings are the same or both have less than 3 ratings, sort by views
+                if (ratingA === ratingB || (countA < 3 && countB < 3)) {
+                  return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+                }
+                
+                // If one has less than 3 ratings, prioritize the one with more
+                if (countA < 3) return 1;
+                if (countB < 3) return -1;
+                
+                return ratingB - ratingA;
+              }
+              return new Date(b.dataset.date) - new Date(a.dataset.date); // newest
+            });
+            
+            // Clear and re-append all items
+            while (list.firstChild) {
+              list.removeChild(list.firstChild);
+            }
+            
+            sorted.forEach(el => list.appendChild(el));
+            
+            // Check if we need to show "no results" after sorting
+            checkNoResults();
+          }
+
+          function filterByTag(tag) {
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const tags = item.getAttribute("data-tags").toLowerCase();
+              const shouldShow = tags.includes(tag.toLowerCase());
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            document.querySelectorAll(".tag, .category-filter").forEach(el => {
+              el.classList.toggle("active-tag", el.getAttribute("data-tag") === tag);
+            });
+            
+            // Show/hide no results message
+            document.getElementById("noResults").style.display = visibleCount === 0 ? 'block' : 'none';
+          }
+
+          function filterByAuthor(author) {
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const shouldShow = item.getAttribute("data-author") === author;
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            document.querySelectorAll(".author-filter").forEach(btn => {
+              btn.classList.toggle("active-tag", btn.getAttribute("data-author") === author);
+            });
+            
+            // Show/hide no results message
+            document.getElementById("noResults").style.display = visibleCount === 0 ? 'block' : 'none';
+          }
+
+          function clearFilters() {
+            // Reset search box
+            const searchBox = document.getElementById("search");
+            if (searchBox) searchBox.value = "";
+            
+            // Show all items
+            document.querySelectorAll(".post-item").forEach(item => {
+              item.style.display = '';
+            });
+            
+            // Remove active class from all filter buttons
+            document.querySelectorAll(".tag, .author-filter, .category-filter").forEach(el => {
+              el.classList.remove("active-tag");
+            });
+            
+            // Hide no results message
+            document.getElementById("noResults").style.display = 'none';
+          }
+          
+          function checkNoResults() {
+            // Count visible items
+            const visibleItems = Array.from(document.querySelectorAll(".post-item"))
+              .filter(item => item.style.display !== 'none').length;
+              
+            // Show/hide no results message
+            document.getElementById("noResults").style.display = visibleItems === 0 ? 'block' : 'none';
+          }
+          
+          function initializeBookmarks() {
+            // Get bookmarks from localStorage
+            const bookmarks = getBookmarks();
+            
+            // Update UI to reflect bookmarked status
+            document.querySelectorAll(".bookmark-btn").forEach(btn => {
+              const slug = btn.getAttribute("data-slug");
+              if (bookmarks.includes(slug)) {
+                btn.classList.add("active");
+              }
+            });
+          }
+          
+          function getBookmarks() {
+            // Get bookmarks from localStorage
+            const bookmarksJSON = localStorage.getItem("bookmarks");
+            return bookmarksJSON ? JSON.parse(bookmarksJSON) : [];
+          }
+          
+          function toggleBookmark(slug, button) {
+            // Get current bookmarks
+            let bookmarks = getBookmarks();
+            
+            // Toggle bookmark status
+            if (bookmarks.includes(slug)) {
+              // Remove from bookmarks
+              bookmarks = bookmarks.filter(id => id !== slug);
+              button.classList.remove("active");
+            } else {
+              // Add to bookmarks
+              bookmarks.push(slug);
+              button.classList.add("active");
+            }
+            
+            // Save to localStorage
+            localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+          }
+          
+          function renderBookmarksList() {
+            const bookmarksList = document.getElementById("bookmarksList");
+            const bookmarks = getBookmarks();
+            
+            // Clear existing content
+            bookmarksList.innerHTML = "";
+            
+if (bookmarks.length === 0) {
+              bookmarksList.innerHTML = `<div class="empty-bookmarks">You haven't bookmarked any book summaries yet.</div>`;
+              return;
+            }
+            
+            // Create a list of bookmarked books from the DOM
+            const bookmarkedPosts = [];
+            
+            // Loop through all posts and find the bookmarked ones
+            document.querySelectorAll(".post-item").forEach(item => {
+              const slug = item.getAttribute("data-slug");
+              if (bookmarks.includes(slug)) {
+                bookmarkedPosts.push({
+                  id: slug,
+                  title: item.querySelector("h3").textContent,
+                  author: item.querySelector(".author") ? item.querySelector(".author").textContent.replace("By ", "") : "",
+                  date: item.getAttribute("data-date")
+                });
+              }
+            });
+            
+            const list = document.createElement("ul");
+            list.style.display = "block"; // Override flex display for this list
+            
+            bookmarkedPosts.forEach(post => {
+              const item = document.createElement("li");
+              item.innerHTML = `
+                <h3><a href="/books/${post.id}/">${post.title}</a></h3>
+                ${post.author ? `<p class="author">By ${post.author}</p>` : ''}
+                <p class="date">${new Date(post.date).toLocaleDateString()}</p>
+                <button class="remove-bookmark" data-slug="${post.id}">Remove</button>
+              `;
+              list.appendChild(item);
+            });
+            
+            bookmarksList.appendChild(list);
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll(".remove-bookmark").forEach(btn => {
+              btn.addEventListener("click", () => {
+                const slug = btn.getAttribute("data-slug");
+                // Remove from bookmarks
+                let bookmarks = getBookmarks().filter(id => id !== slug);
+                localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+                
+                // Update UI
+                document.querySelectorAll(`.bookmark-btn[data-slug="${slug}"]`).forEach(bookmarkBtn => {
+                  bookmarkBtn.classList.remove("active");
+                });
+                
+                renderBookmarksList();
+              });
+            });
+          }
+          
+          function exportBookmarksList() {
+            const bookmarks = getBookmarks();
+            
+            if (bookmarks.length === 0) {
+              alert("You don't have any bookmarked summaries to export.");
+              return;
+            }
+            
+            // Get bookmarked books
+            const bookmarkedPosts = [];
+            
+            // Loop through all posts and find the bookmarked ones
+            document.querySelectorAll(".post-item").forEach(item => {
+              const slug = item.getAttribute("data-slug");
+              if (bookmarks.includes(slug)) {
+                bookmarkedPosts.push({
+                  title: item.querySelector("h3").textContent,
+                  author: item.querySelector(".author") ? item.querySelector(".author").textContent.replace("By ", "") : ""
+                });
+              }
+            });
+            
+            // Format the list as text
+            let exportText = "# My Bookmarked Book Summaries\n\n";
+            
+            bookmarkedPosts.forEach(post => {
+              exportText += `- ${post.title}${post.author ? ` by ${post.author}` : ''}\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'my_bookmarked_summaries.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+          
+          function submitRating(slug, rating) {
+            // Get all stars for this book
+            const starsContainer = document.querySelector(`.rating-display[data-slug="${slug}"] .stars`);
+            if (starsContainer) {
+              const stars = starsContainer.querySelectorAll('.star');
+              
+              // Update UI to show the new rating
+              stars.forEach((star, index) => {
+                if (index < rating) {
+                  star.textContent = '★';
+                } else {
+                  star.textContent = '☆';
+                }
+              });
+              
+              // Update the display of average rating (in a real app this would come from the server)
+              const ratingDisplay = starsContainer.nextElementSibling;
+              const countDisplay = ratingDisplay.nextElementSibling;
+              
+              // Simple client-side implementation - this would actually be done server-side
+              const currentItem = document.querySelector(`.post-item[data-slug="${slug}"]`);
+              if (currentItem) {
+                const currentRating = parseFloat(currentItem.getAttribute('data-rating')) || 0;
+                const currentCount = parseInt(currentItem.getAttribute('data-rating-count')) || 0;
+                
+                let newCount, newAverage;
+                
+                // If it's the first rating
+                if (currentCount === 0) {
+                  newCount = 1;
+                  newAverage = rating;
+                } else {
+                  // Simple average calculation (in a real app this would be more sophisticated)
+                  newCount = currentCount + 1;
+                  newAverage = ((currentRating * currentCount) + rating) / newCount;
+                }
+                
+                // Update the displays
+                ratingDisplay.textContent = newAverage.toFixed(1);
+                countDisplay.textContent = `(${newCount} ratings)`;
+                
+                // Update the data attributes
+                currentItem.setAttribute('data-rating', newAverage);
+                currentItem.setAttribute('data-rating-count', newCount);
+              }
+            }
+            
+            // In a real implementation, you would call an API here
+            console.log(`Rating ${rating} submitted for ${slug}`);
+          }
+        </script>
+      </section>
+    </main>
+    <Footer />
   </body>
 </html>
