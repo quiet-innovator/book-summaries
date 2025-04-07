@@ -5,20 +5,12 @@ export interface Props {
 }
 
 const { href } = Astro.props;
+const currentPath = Astro.url.pathname;
 
-// This gets the current URL path
-const { pathname } = Astro.url;
-
-// Normalize paths by removing trailing slashes for comparison
-const normalizedPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-const normalizedHref = href.endsWith('/') ? href.slice(0, -1) : href;
-
-// Simple exact match for active state
-const isActive = 
-  normalizedHref === '/' 
-    ? normalizedPathname === '' || normalizedPathname === '/' 
-    : normalizedPathname === normalizedHref;
-
+// Simple direct comparison - pathname exactly matches href
+const isActive = currentPath === href || 
+                (href === '/' && (currentPath === '' || currentPath === '/')) || 
+                (href !== '/' && currentPath.startsWith(href));
 ---
 
 <a href={href} class:list={[{ active: isActive }]}>
