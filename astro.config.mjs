@@ -4,20 +4,17 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import icons from 'astro-icon';
 import react from '@astrojs/react';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 export default defineConfig({
-  site: 'https://minutereads.io', // make sure this is your live domain
+  site: 'https://minutereads.io',
   integrations: [
     mdx(), 
     sitemap(), 
     icons(),
-    react() // Keep only the React integration for now
+    react()
   ],
-  content: {
-    // ✅ register the content config!
-    entryGlob: './src/content/**/*.{md,mdx}',
-  },
+  output: 'static', // Make sure we're doing a static build
+  build: {
+    format: 'file'
+  }
 });
