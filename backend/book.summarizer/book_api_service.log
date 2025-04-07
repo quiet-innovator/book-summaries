@@ -66,3 +66,37 @@
 2025-04-07 14:29:09,295 - INFO -  * Debugger PIN: 110-726-745
 2025-04-07 14:57:56,443 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
 2025-04-07 14:57:57,595 - INFO -  * Restarting with stat
+2025-04-07 15:18:30,542 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 15:18:30,544 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 15:18:30,546 - INFO -  * Restarting with stat
+2025-04-07 15:18:32,357 - WARNING -  * Debugger is active!
+2025-04-07 15:18:32,378 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 15:18:41,995 - INFO - 127.0.0.1 - - [07/Apr/2025 15:18:41] "GET / HTTP/1.1" 200 -
+2025-04-07 15:18:42,773 - INFO - 127.0.0.1 - - [07/Apr/2025 15:18:42] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 15:20:19,334 - INFO - 127.0.0.1 - - [07/Apr/2025 15:20:19] "GET /api/book/search?query=python&limit=5 HTTP/1.1" 200 -
+2025-04-07 15:21:36,678 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 15:21:36,680 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 15:21:36,682 - INFO -  * Restarting with stat
+2025-04-07 15:21:38,830 - WARNING -  * Debugger is active!
+2025-04-07 15:21:38,850 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 15:21:59,654 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 15:21:59,655 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 15:21:59,656 - INFO -  * Restarting with stat
+2025-04-07 15:22:01,465 - WARNING -  * Debugger is active!
+2025-04-07 15:22:01,473 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 15:22:11,947 - INFO - 127.0.0.1 - - [07/Apr/2025 15:22:11] "GET /api/book/search?query=python&limit=5 HTTP/1.1" 200 -
+2025-04-07 15:22:13,181 - INFO - 127.0.0.1 - - [07/Apr/2025 15:22:13] "GET /api/categories HTTP/1.1" 200 -
+2025-04-07 15:22:15,358 - INFO - 127.0.0.1 - - [07/Apr/2025 15:22:15] "GET /api/languages HTTP/1.1" 200 -
+2025-04-07 15:23:44,788 - ERROR - Error generating summary: name 'client' is not defined
+2025-04-07 15:23:44,789 - INFO - 127.0.0.1 - - [07/Apr/2025 15:23:44] "[35m[1mGET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1[0m" 500 -
+2025-04-07 15:24:41,583 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 15:24:41,921 - INFO -  * Restarting with stat

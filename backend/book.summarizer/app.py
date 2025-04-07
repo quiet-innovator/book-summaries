@@ -1,3 +1,42 @@
+import os
+import json
+import logging
+from datetime import datetime
+from openai import OpenAI
+from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("book_api_service.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)  # Enable cross-origin requests
+
+# API keys loaded from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
+
+# Constants
+OUTPUT_DIR = "../../public/summaries"  # Path relative to the backend folder
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 def generate_amazon_link(title, authors):
     """Generate Amazon affiliate link"""
     base_url = "https://www.amazon.com/s"
@@ -836,4 +875,4 @@ if __name__ == '__main__':
     os.makedirs(f"{OUTPUT_DIR}/pending", exist_ok=True)
     
     # Run the Flask app
-    app.run(host='0.0.0.0', port=8000, debug=True)a
+    app.run(host='0.0.0.0', port=8000, debug=True)
