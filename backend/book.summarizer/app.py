@@ -2,7 +2,6 @@ import os
 import json
 import logging
 from datetime import datetime
-from openai import OpenAI
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import requests
@@ -22,16 +21,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client
+# API keys loaded from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
+
+# Initialize OpenAI client (AFTER getting the API key)
+from openai import OpenAI
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable cross-origin requests
-
-# API keys loaded from environment
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
 
 # Constants
 OUTPUT_DIR = "../../public/summaries"  # Path relative to the backend folder

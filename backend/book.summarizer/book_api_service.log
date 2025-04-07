@@ -100,3 +100,11 @@
 2025-04-07 15:23:44,789 - INFO - 127.0.0.1 - - [07/Apr/2025 15:23:44] "[35m[1mGET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1[0m" 500 -
 2025-04-07 15:24:41,583 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
 2025-04-07 15:24:41,921 - INFO -  * Restarting with stat
+2025-04-07 15:31:11,934 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 15:31:11,936 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 15:31:11,939 - INFO -  * Restarting with stat
+2025-04-07 15:31:15,153 - WARNING -  * Debugger is active!
+2025-04-07 15:31:15,176 - INFO -  * Debugger PIN: 110-726-745
