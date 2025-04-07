@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "npm install react@18.2.0 react-dom@18.2.0",
+    "prebuild": "npm install react@18.2.0 react-dom@18.2.0 --force",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
@@ -20,5 +20,8 @@
     "dotenv": "^16.4.7",
     "react": "18.2.0",
     "react-dom": "18.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
