@@ -1,0 +1,43 @@
+---
+// src/pages/[lang]/add-book.astro
+import { useTranslations } from "astro-i18n";
+import Layout from '../../layouts/Layout.astro';
+import AddBookForm from '../../components/AddBookForm';
+
+const t = useTranslations();
+const lang = Astro.params.lang || 'en';
+---
+
+<Layout title={t('common.addBookSummary')}>
+  <main>
+    <div class="add-book-container">
+      <div class="page-header">
+        <h1>{t('common.addBookSummary')}</h1>
+        <p class="subtitle">{t('common.addBookSubtitle')}</p>
+      </div>
+      
+      <AddBookForm client:load lang={lang} />
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .add-book-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .subtitle {
+    color: #666;
+    font-size: 1.1rem;
+  }
+</style>

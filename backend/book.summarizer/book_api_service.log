@@ -1,0 +1,63 @@
+2025-04-07 13:19:56,846 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 13:19:56,846 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 13:19:56,861 - INFO -  * Restarting with stat
+2025-04-07 13:19:59,221 - WARNING -  * Debugger is active!
+2025-04-07 13:19:59,233 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 13:55:23,097 - INFO - 127.0.0.1 - - [07/Apr/2025 13:55:23] "[33mGET / HTTP/1.1[0m" 404 -
+2025-04-07 13:55:27,312 - INFO - 127.0.0.1 - - [07/Apr/2025 13:55:27] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 13:55:46,776 - INFO - 127.0.0.1 - - [07/Apr/2025 13:55:46] "[33mGET / HTTP/1.1[0m" 404 -
+2025-04-07 13:55:46,957 - INFO - 127.0.0.1 - - [07/Apr/2025 13:55:46] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 13:55:49,233 - INFO - 172.20.10.6 - - [07/Apr/2025 13:55:49] "[33mGET / HTTP/1.1[0m" 404 -
+2025-04-07 13:55:49,307 - INFO - 172.20.10.6 - - [07/Apr/2025 13:55:49] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 13:55:51,727 - INFO - 172.20.10.6 - - [07/Apr/2025 13:55:51] "[33mGET / HTTP/1.1[0m" 404 -
+2025-04-07 14:05:19,655 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 14:05:20,315 - INFO -  * Restarting with stat
+2025-04-07 14:05:26,141 - WARNING -  * Debugger is active!
+2025-04-07 14:05:26,164 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 14:05:53,961 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 14:05:53,962 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 14:05:53,963 - INFO -  * Restarting with stat
+2025-04-07 14:05:56,180 - WARNING -  * Debugger is active!
+2025-04-07 14:05:56,188 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 14:06:02,293 - INFO - 127.0.0.1 - - [07/Apr/2025 14:06:02] "GET / HTTP/1.1" 200 -
+2025-04-07 14:06:02,595 - INFO - 127.0.0.1 - - [07/Apr/2025 14:06:02] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 14:08:59,631 - WARNING - Google Books API returned 403
+2025-04-07 14:09:00,127 - INFO - 127.0.0.1 - - [07/Apr/2025 14:09:00] "GET /api/book/search?query=python&limit=5 HTTP/1.1" 200 -
+2025-04-07 14:09:12,073 - WARNING - Google Books API returned 403 for https://www.googleapis.com/books/v1/volumes/BOOK_ID?key=AIzaSyBad75ybTjin0pyxein3j3SvQtk1NOL030
+2025-04-07 14:09:12,076 - INFO - 127.0.0.1 - - [07/Apr/2025 14:09:12] "[33mGET /api/book/details?id=BOOK_ID&source=Google%20Books HTTP/1.1[0m" 404 -
+2025-04-07 14:09:27,914 - WARNING - Google Books API returned 403 for https://www.googleapis.com/books/v1/volumes/OL2784127W?key=AIzaSyBad75ybTjin0pyxein3j3SvQtk1NOL030
+2025-04-07 14:09:27,916 - INFO - 127.0.0.1 - - [07/Apr/2025 14:09:27] "[33mGET /api/book/details?id=OL2784127W&source=Google%20Books HTTP/1.1[0m" 404 -
+2025-04-07 14:09:46,057 - ERROR - Google Books API returned 403
+2025-04-07 14:09:46,060 - INFO - 127.0.0.1 - - [07/Apr/2025 14:09:46] "GET /api/books/category?code=fiction&page=1&limit=10 HTTP/1.1" 200 -
+2025-04-07 14:10:33,123 - INFO - 127.0.0.1 - - [07/Apr/2025 14:10:33] "GET /api/book/details?id=OL2784127W&source=Open%20Library HTTP/1.1" 200 -
+2025-04-07 14:10:51,281 - INFO - 127.0.0.1 - - [07/Apr/2025 14:10:51] "GET /api/book/details?id=OL2784127W&source=Open%20Library HTTP/1.1" 200 -
+2025-04-07 14:10:51,348 - INFO - 127.0.0.1 - - [07/Apr/2025 14:10:51] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 14:11:11,588 - INFO - 127.0.0.1 - - [07/Apr/2025 14:11:11] "GET /api/categories HTTP/1.1" 200 -
+2025-04-07 14:11:41,813 - ERROR - Google Books API returned 403
+2025-04-07 14:11:41,816 - INFO - 127.0.0.1 - - [07/Apr/2025 14:11:41] "GET /api/books/category?code=literary+fiction&page=1&limit=10 HTTP/1.1" 200 -
+2025-04-07 14:17:23,969 - INFO - 127.0.0.1 - - [07/Apr/2025 14:17:23] "GET / HTTP/1.1" 200 -
+2025-04-07 14:17:24,304 - INFO - 127.0.0.1 - - [07/Apr/2025 14:17:24] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 14:17:26,030 - INFO - 172.20.10.6 - - [07/Apr/2025 14:17:26] "GET / HTTP/1.1" 200 -
+2025-04-07 14:17:26,254 - ERROR - 172.20.10.6 - - [07/Apr/2025 14:17:26] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x07O\x01\x00\x07K\x03\x030Â')
+2025-04-07 14:17:26,257 - INFO - 172.20.10.6 - - [07/Apr/2025 14:17:26] "[31m[1m\x16\x03\x01\x07O\x01\x00\x07K\x03\x030Â\x1fÈ\x80\x12Ï1Óî\x04\x18ñÊU¼ä{[0m" 400 -
+2025-04-07 14:17:26,271 - ERROR - 172.20.10.6 - - [07/Apr/2025 14:17:26] code 400, message Bad request version ('\x84¬\x06»\x00"\x13\x01\x13\x03\x13\x02À+À/Ì©Ì¨À,À0À')
+2025-04-07 14:17:26,272 - INFO - 172.20.10.6 - - [07/Apr/2025 14:17:26] "[31m[1m\x16\x03\x01\x02~\x01\x00\x02z\x03\x03\x9e\x83»¨\x9b\x03\x13Ó«~û\x8dÂÒ{\x8c§í~åÄ\x12\x9e\x91¿4ÂAä(Zµ ø{6Þy|\x8fb\x0d\x8b\x86\x13Õ§"®UBÀ¥i{\x19ªi\x9d_ \x84¬\x06»\x00"\x13\x01\x13\x03\x13\x02À+À/Ì©Ì¨À,À0À[0m" 400 -
+2025-04-07 14:17:27,808 - INFO - 127.0.0.1 - - [07/Apr/2025 14:17:27] "GET / HTTP/1.1" 200 -
+2025-04-07 14:17:27,929 - INFO - 127.0.0.1 - - [07/Apr/2025 14:17:27] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 14:18:30,564 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 14:18:31,104 - INFO -  * Restarting with stat
+2025-04-07 14:18:34,917 - WARNING -  * Debugger is active!
+2025-04-07 14:18:34,944 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 14:19:03,541 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-07 14:19:03,559 - INFO - Saved 1 processed books
+2025-04-07 14:19:03,561 - INFO - 127.0.0.1 - - [07/Apr/2025 14:19:03] "GET /api/book/summary?title=The%20Blazing%20World&authors=Siri%20Hustvedt&bookId=-676AgAAQBAJ&source=Google%20Books HTTP/1.1" 200 -
+2025-04-07 14:19:16,998 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-07 14:19:17,013 - INFO - Saved 2 processed books
+2025-04-07 14:19:17,014 - INFO - 127.0.0.1 - - [07/Apr/2025 14:19:17] "GET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1" 200 -
+2025-04-07 14:29:05,631 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading

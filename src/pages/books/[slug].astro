@@ -1,4 +1,13 @@
 ---
+// src/pages/[lang]/book/[slug].astro
+import { useTranslations } from "astro-i18n";
+import Layout from '../../../layouts/Layout.astro';
+import BookSummary from '../../../components/BookSummary';
+
+const t = useTranslations();
+const { slug } = Astro.params;
+const lang = Astro.params.lang || 'en';
+
 // Define reader levels
 const readerLevels = [
   { name: "Novice Reader", icon: "📚", minPoints: 0 },
@@ -13,26 +22,58 @@ const readerLevels = [
   { name: "Reading Legend", icon: "👑", minPoints: 2000 }
 ];
 
-// Required for static generation with mock data
-export function getStaticPaths() {
-  // Define mock books directly inside the function to avoid scope issues
-  const mockBooks = [
-    { slug: "atomic-habits", title: "Atomic Habits", description: "An Easy & Proven Way to Build Good Habits & Break Bad Ones" },
-    { slug: "deep-work", title: "Deep Work", description: "Rules for Focused Success in a Distracted World" },
-    { slug: "thinking-fast-and-slow", title: "Thinking, Fast and Slow", description: "A groundbreaking exploration of how we think" },
-    { slug: "sapiens", title: "Sapiens", description: "A Brief History of Humankind" },
-    { slug: "the-psychology-of-money", title: "The Psychology of Money", description: "Timeless lessons on wealth, greed, and happiness" }
-  ];
-  
-  return mockBooks.map(book => ({
-    params: { slug: book.slug },
-    props: { book }
-  }));
+// Function to get the book data
+async function getBookData(slug, lang) {
+  try {
+    // First try to get from local summaries
+    const bookSummaries = await import.meta.glob('/public/summaries/*.md');
+    const bookFiles = Object.keys(bookSummaries);
+    
+    // Look for the specific language version if not English
+    let fileName = `/public/summaries/${slug}.md`;
+    if (lang !== 'en') {
+      fileName = `/public/summaries/${slug}-${lang === 'en' ? 'english' : lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi'}.md`;
+    }
+    
+    // Check if the file exists
+    const matchingFile = bookFiles.find(file => file === fileName);
+    
+    if (matchingFile) {
+      const { Content, frontmatter } = await bookSummaries[matchingFile]();
+      return {
+        ...frontmatter,
+        Content,
+        slug
+      };
+    }
+    
+    // If not found locally, try fetching from API
+    const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+    const apiLang = lang === 'en' ? 'english' : lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi';
+    
+    const response = await fetch(`${apiUrl}/api/book/summary?slug=${slug}&language=${apiLang}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        title: data.title,
+        author: data.authors,
+        summary: data.summary,
+        thumbnailUrl: data.thumbnailUrl,
+        publishedDate: data.publishedDate,
+        tags: data.tags || [],
+        category: data.category,
+        bookId: data.bookId,
+        slug
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching book data:', error);
+    return null;
+  }
 }
-
-// Get the book from props
-const { book } = Astro.props;
-const { slug } = Astro.params;
 
 // Function to get user level based on points
 function getUserLevel(points) {
@@ -48,361 +89,390 @@ function getUserLevel(points) {
   
   return currentLevel;
 }
+
+// Get the book data
+const bookData = await getBookData(slug, lang);
 ---
 
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{book.title || "Book Detail"}</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      padding: 0;
-      color: #333;
-      background: #f5f5f5;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
-    .book-detail {
-      background: white;
-      border-radius: 8px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .user-profile {
-      margin-top: 2rem;
-      padding: 1rem;
-      background: #f9f9f9;
-      border-radius: 8px;
-    }
-    .user-level {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .user-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .progress-container {
-      height: 8px;
-      background: #eee;
-      border-radius: 4px;
-      margin: 0.5rem 0;
-    }
-    .progress-bar {
-      height: 100%;
-      background: #4CAF50;
-      border-radius: 4px;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-    .badges-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-    .badge {
-      font-size: 1.5rem;
-    }
-    .badge-tooltip {
-      position: relative;
-      cursor: pointer;
-    }
-    .badge-tooltip:hover::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: white;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      white-space: nowrap;
-      font-size: 0.75rem;
-      z-index: 10;
-    }
-    .book-actions {
-      margin-top: 2rem;
-    }
-    .read-btn {
-      padding: 0.5rem 1rem;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .read-btn.read {
-      background: #2196F3;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="book-detail">
-      <!-- Book information -->
-      <h1>{book.title}</h1>
-      <p>{book.description}</p>
-      
-      <!-- User profile section -->
-      <div id="userProfile" class="user-profile">
-        <div class="user-level">
-          <span id="currentLevelIcon"></span>
-          <span id="currentLevelName"></span>
-        </div>
-        <div class="user-stats">
-          <div>Points: <span id="userPointsValue">0</span></div>
-          <div>Books Read: <span id="userBooksRead">0</span></div>
-          <div class="progress-container">
-            <div id="userProgressBar" class="progress-bar"></div>
+<Layout title={bookData ? bookData.title : t('common.bookNotFound')}>
+  <main>
+    {bookData ? (
+      <div class="book-container">
+        <BookSummary bookData={bookData} client:load />
+        
+        <!-- User profile section -->
+        <div id="userProfile" class="user-profile">
+          <h3>{t('common.readerProgress')}</h3>
+          <div class="user-level">
+            <span id="currentLevelIcon"></span>
+            <span id="currentLevelName"></span>
+          </div>
+          <div class="user-stats">
+            <div>Points: <span id="userPointsValue">0</span></div>
+            <div>Books Read: <span id="userBooksRead">0</span></div>
+            <div class="progress-container">
+              <div id="userProgressBar" class="progress-bar"></div>
+            </div>
+          </div>
+          <div id="userBadges" class="badges-container"></div>
+          
+          <!-- Book actions -->
+          <div class="book-actions">
+            <button class="read-btn" data-slug={slug}>Mark Read</button>
           </div>
         </div>
-        <div id="userBadges" class="badges-container"></div>
       </div>
-      
-      <!-- Book actions -->
-      <div class="book-actions">
-        <button class="read-btn" data-slug={slug}>Mark Read</button>
+    ) : (
+      <div class="not-found">
+        <h2>{t('common.bookNotFound')}</h2>
+        <p>{t('common.bookNotFoundMessage')}</p>
+        <div class="action-buttons">
+          <a href={`/${lang}/search`} class="button search-button">{t('common.searchBooks')}</a>
+          <a href={`/${lang}/add-book`} class="button add-button">{t('common.addBookSummary')}</a>
+        </div>
       </div>
-    </div>
-  </div>
+    )}
+  </main>
+</Layout>
 
-  <script>
-  // Immediately executed function to avoid global scope pollution
-  (function() {
-    // Define reader levels globally within our IIFE
-    const readerLevels = [
-      { name: "Novice Reader", icon: "📚", minPoints: 0 },
-      { name: "Book Explorer", icon: "🔍", minPoints: 50 },
-      { name: "Bookworm", icon: "🐛", minPoints: 100 },
-      { name: "Avid Reader", icon: "📖", minPoints: 200 },
-      { name: "Scholar", icon: "🧠", minPoints: 350 },
-      { name: "Bibliophile", icon: "🤓", minPoints: 500 },
-      { name: "Literary Critic", icon: "⭐", minPoints: 750 },
-      { name: "Book Master", icon: "🏆", minPoints: 1000 },
-      { name: "Sage Reader", icon: "🧙", minPoints: 1500 },
-      { name: "Reading Legend", icon: "👑", minPoints: 2000 }
-    ];
-    
-    // Run when DOM is fully loaded
-    function initFeatures() {
-      updateUserStats();
-      setupEventListeners();
-      console.log("Book features initialized");
+<style>
+  .book-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    .book-container {
+      grid-template-columns: 1fr;
     }
+  }
+  
+  .user-profile {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    height: fit-content;
+  }
+  
+  .user-level {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .user-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .progress-container {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background: #4CAF50;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  
+  .badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .badge {
+    font-size: 1.5rem;
+  }
+  
+  .badge-tooltip {
+    position: relative;
+    cursor: pointer;
+  }
+  
+  .badge-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    z-index: 10;
+  }
+  
+  .book-actions {
+    margin-top: 2rem;
+  }
+  
+  .read-btn {
+    padding: 0.5rem 1rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  
+  .read-btn.read {
+    background: #2196F3;
+  }
+  
+  .not-found {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s;
+  }
+  
+  .search-button {
+    background-color: #4361ee;
+    color: white;
+  }
+  
+  .add-button {
+    background-color: #4CAF50;
+    color: white;
+  }
+</style>
+
+<script define:vars={{ readerLevels, slug }}>
+// Client-side code for reader progress and badges
+document.addEventListener('DOMContentLoaded', () => {
+  updateUserStats();
+  setupEventListeners();
+});
+
+function setupEventListeners() {
+  // Add event listeners as needed
+  document.querySelectorAll(".read-btn").forEach(btn => {
+    btn.addEventListener("click", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const slug = this.getAttribute("data-slug");
+      if (slug) toggleReadStatus(slug, this);
+    });
+  });
+}
+
+function updateUserStats() {
+  try {
+    const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+    const points = userStats.points || 0;
     
-    function setupEventListeners() {
-      // Add event listeners as needed
-      document.querySelectorAll(".read-btn").forEach(btn => {
-        btn.addEventListener("click", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          const slug = this.getAttribute("data-slug");
-          if (slug) toggleReadStatus(slug, this);
-        });
-      });
-    }
+    // Update points display
+    const pointsEl = document.getElementById("userPointsValue");
+    if (pointsEl) pointsEl.textContent = points;
     
-    function updateUserStats() {
-      try {
-        const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
-        const points = userStats.points || 0;
-        
-        // Update points display
-        const pointsEl = document.getElementById("userPointsValue");
-        if (pointsEl) pointsEl.textContent = points;
-        
-        // Update books read count
-        const booksReadEl = document.getElementById("userBooksRead");
-        if (booksReadEl) booksReadEl.textContent = userStats.booksRead || 0;
-        
-        // Update user level
-        const currentLevel = getUserLevel(points);
-        
-        // Calculate progress to next level
-        let progressPercent = 0;
-        const levelIndex = readerLevels.findIndex(level => level.name === currentLevel.name);
-        if (levelIndex < readerLevels.length - 1) {
-          const nextLevel = readerLevels[levelIndex + 1];
-          const pointsForCurrentLevel = points - currentLevel.minPoints;
-          const pointsNeededForNextLevel = nextLevel.minPoints - currentLevel.minPoints;
-          progressPercent = Math.min(100, (pointsForCurrentLevel / pointsNeededForNextLevel) * 100);
-        } else {
-          // Already at max level
-          progressPercent = 100;
-        }
-        
-        // Update progress bar
-        const progressBar = document.getElementById("userProgressBar");
-        if (progressBar) {
-          progressBar.style.width = `${progressPercent}%`;
-        }
-        
-        // Update level display
-        const levelIcon = document.getElementById('currentLevelIcon');
-        const levelName = document.getElementById('currentLevelName');
-        
-        if (levelIcon) levelIcon.textContent = currentLevel.icon;
-        if (levelName) levelName.textContent = currentLevel.name;
-        
-        // Update badges
-        updateBadges(userStats);
-      } catch (e) {
-        console.error("Error updating user stats:", e);
-      }
-    }
+    // Update books read count
+    const booksReadEl = document.getElementById("userBooksRead");
+    if (booksReadEl) booksReadEl.textContent = userStats.booksRead || 0;
     
-    function getUserLevel(points) {
-      // Find the highest level that the user qualifies for
-      let currentLevel = readerLevels[0]; // Default to first level
-      
-      for (let i = readerLevels.length - 1; i >= 0; i--) {
-        if (points >= readerLevels[i].minPoints) {
-          currentLevel = readerLevels[i];
-          break;
-        }
-      }
-      
-      return currentLevel;
-    }
+    // Update user level
+    const currentLevel = getUserLevel(points);
     
-    function updateBadges(userStats) {
-      const badgesContainer = document.getElementById("userBadges");
-      if (!badgesContainer) return;
-      
-      badgesContainer.innerHTML = '';
-      
-      // Generate badges based on achievements
-      const badges = [];
-      
-      // Reader badges
-      if (userStats.booksRead >= 1) {
-        badges.push({ name: "First Book Read", icon: "📚" });
-      }
-      if (userStats.booksRead >= 5) {
-        badges.push({ name: "Bookworm", icon: "🐛" });
-      }
-      if (userStats.booksRead >= 10) {
-        badges.push({ name: "Avid Reader", icon: "📖" });
-      }
-      if (userStats.booksRead >= 25) {
-        badges.push({ name: "Book Master", icon: "🏆" });
-      }
-      
-      // Points badges
-      if (userStats.points >= 100) {
-        badges.push({ name: "Century Club", icon: "💯" });
-      }
-      if (userStats.points >= 500) {
-        badges.push({ name: "Scholar", icon: "🧠" });
-      }
-      if (userStats.points >= 1000) {
-        badges.push({ name: "Intellectual", icon: "🎓" });
-      }
-      
-      // Activity badges
-      if (userStats.booksBookmarked >= 5) {
-        badges.push({ name: "Curator", icon: "🔖" });
-      }
-      if (userStats.ratingsGiven >= 10) {
-        badges.push({ name: "Critic", icon: "⭐" });
-      }
-      
-      // Add badges to UI
-      badges.forEach(badge => {
-        const badgeElement = document.createElement("span");
-        badgeElement.className = "badge-tooltip";
-        badgeElement.setAttribute("data-tooltip", badge.name);
-        
-        const badgeIcon = document.createElement("span");
-        badgeIcon.className = "badge";
-        badgeIcon.innerHTML = badge.icon;
-        
-        badgeElement.appendChild(badgeIcon);
-        badgesContainer.appendChild(badgeElement);
-      });
-    }
-    
-    function toggleReadStatus(slug, button) {
-      if (!slug || !button) return;
-      
-      try {
-        let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
-        
-        if (!userStats.readBooks) userStats.readBooks = [];
-        if (!userStats.points) userStats.points = 0;
-        if (!userStats.booksRead) userStats.booksRead = 0;
-        
-        if (userStats.readBooks.includes(slug)) {
-          // Remove from read books
-          userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
-          button.textContent = "Mark Read";
-          button.classList.remove("read");
-          
-          // Reduce points (minimum 0)
-          userStats.points = Math.max(0, userStats.points - 10);
-          userStats.booksRead = Math.max(0, userStats.booksRead - 1);
-        } else {
-          // Add to read books
-          userStats.readBooks.push(slug);
-          button.textContent = "Read";
-          button.classList.add("read");
-          
-          // Award points
-          userStats.points += 10;
-          userStats.booksRead++;
-          
-          showNotification("🎉 +10 points for reading!");
-        }
-        
-        localStorage.setItem("userStats", JSON.stringify(userStats));
-        updateUserStats();
-      } catch (e) {
-        console.error("Error toggling read status:", e);
-      }
-    }
-    
-    function showNotification(message) {
-      const notification = document.createElement("div");
-      notification.style.position = "fixed";
-      notification.style.bottom = "20px";
-      notification.style.right = "20px";
-      notification.style.backgroundColor = "#4CAF50";
-      notification.style.color = "white";
-      notification.style.padding = "12px 24px";
-      notification.style.borderRadius = "4px";
-      notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
-      notification.style.zIndex = "1000";
-      notification.style.transition = "opacity 0.5s";
-      notification.textContent = message;
-      
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        notification.style.opacity = "0";
-        setTimeout(() => {
-          document.body.removeChild(notification);
-        }, 500);
-      }, 3000);
-    }
-    
-    // Execute when DOM is ready
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initFeatures);
+    // Calculate progress to next level
+    let progressPercent = 0;
+    const levelIndex = readerLevels.findIndex(level => level.name === currentLevel.name);
+    if (levelIndex < readerLevels.length - 1) {
+      const nextLevel = readerLevels[levelIndex + 1];
+      const pointsForCurrentLevel = points - currentLevel.minPoints;
+      const pointsNeededForNextLevel = nextLevel.minPoints - currentLevel.minPoints;
+      progressPercent = Math.min(100, (pointsForCurrentLevel / pointsNeededForNextLevel) * 100);
     } else {
-      initFeatures();
+      // Already at max level
+      progressPercent = 100;
     }
-  })();
-  </script>
-</body>
-</html>
+    
+    // Update progress bar
+    const progressBar = document.getElementById("userProgressBar");
+    if (progressBar) {
+      progressBar.style.width = `${progressPercent}%`;
+    }
+    
+    // Update level display
+    const levelIcon = document.getElementById('currentLevelIcon');
+    const levelName = document.getElementById('currentLevelName');
+    
+    if (levelIcon) levelIcon.textContent = currentLevel.icon;
+    if (levelName) levelName.textContent = currentLevel.name;
+    
+    // Update badges
+    updateBadges(userStats);
+    
+    // Update button state
+    const readBtn = document.querySelector(`.read-btn[data-slug="${slug}"]`);
+    if (readBtn && userStats.readBooks && userStats.readBooks.includes(slug)) {
+      readBtn.textContent = "Read";
+      readBtn.classList.add("read");
+    }
+  } catch (e) {
+    console.error("Error updating user stats:", e);
+  }
+}
+
+function getUserLevel(points) {
+  // Find the highest level that the user qualifies for
+  let currentLevel = readerLevels[0]; // Default to first level
+  
+  for (let i = readerLevels.length - 1; i >= 0; i--) {
+    if (points >= readerLevels[i].minPoints) {
+      currentLevel = readerLevels[i];
+      break;
+    }
+  }
+  
+  return currentLevel;
+}
+
+function updateBadges(userStats) {
+  const badgesContainer = document.getElementById("userBadges");
+  if (!badgesContainer) return;
+  
+  badgesContainer.innerHTML = '';
+  
+  // Generate badges based on achievements
+  const badges = [];
+  
+  // Reader badges
+  if (userStats.booksRead >= 1) {
+    badges.push({ name: "First Book Read", icon: "📚" });
+  }
+  if (userStats.booksRead >= 5) {
+    badges.push({ name: "Bookworm", icon: "🐛" });
+  }
+  if (userStats.booksRead >= 10) {
+    badges.push({ name: "Avid Reader", icon: "📖" });
+  }
+  if (userStats.booksRead >= 25) {
+    badges.push({ name: "Book Master", icon: "🏆" });
+  }
+  
+  // Points badges
+  if (userStats.points >= 100) {
+    badges.push({ name: "Century Club", icon: "💯" });
+  }
+  if (userStats.points >= 500) {
+    badges.push({ name: "Scholar", icon: "🧠" });
+  }
+  if (userStats.points >= 1000) {
+    badges.push({ name: "Intellectual", icon: "🎓" });
+  }
+  
+  // Activity badges
+  if (userStats.booksBookmarked >= 5) {
+    badges.push({ name: "Curator", icon: "🔖" });
+  }
+  if (userStats.ratingsGiven >= 10) {
+    badges.push({ name: "Critic", icon: "⭐" });
+  }
+  
+  // Add badges to UI
+  badges.forEach(badge => {
+    const badgeElement = document.createElement("span");
+    badgeElement.className = "badge-tooltip";
+    badgeElement.setAttribute("data-tooltip", badge.name);
+    
+    const badgeIcon = document.createElement("span");
+    badgeIcon.className = "badge";
+    badgeIcon.innerHTML = badge.icon;
+    
+    badgeElement.appendChild(badgeIcon);
+    badgesContainer.appendChild(badgeElement);
+  });
+}
+
+function toggleReadStatus(slug, button) {
+  if (!slug || !button) return;
+  
+  try {
+    let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+    
+    if (!userStats.readBooks) userStats.readBooks = [];
+    if (!userStats.points) userStats.points = 0;
+    if (!userStats.booksRead) userStats.booksRead = 0;
+    
+    if (userStats.readBooks.includes(slug)) {
+      // Remove from read books
+      userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
+      button.textContent = "Mark Read";
+      button.classList.remove("read");
+      
+      // Reduce points (minimum 0)
+      userStats.points = Math.max(0, userStats.points - 10);
+      userStats.booksRead = Math.max(0, userStats.booksRead - 1);
+    } else {
+      // Add to read books
+      userStats.readBooks.push(slug);
+      button.textContent = "Read";
+      button.classList.add("read");
+      
+      // Award points
+      userStats.points += 10;
+      userStats.booksRead++;
+      
+      showNotification("🎉 +10 points for reading!");
+    }
+    
+    localStorage.setItem("userStats", JSON.stringify(userStats));
+    updateUserStats();
+  } catch (e) {
+    console.error("Error toggling read status:", e);
+  }
+}
+
+function showNotification(message) {
+  const notification = document.createElement("div");
+  notification.style.position = "fixed";
+  notification.style.bottom = "20px";
+  notification.style.right = "20px";
+  notification.style.backgroundColor = "#4CAF50";
+  notification.style.color = "white";
+  notification.style.padding = "12px 24px";
+  notification.style.borderRadius = "4px";
+  notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+  notification.style.zIndex = "1000";
+  notification.style.transition = "opacity 0.5s";
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.opacity = "0";
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 500);
+  }, 3000);
+}
+</script>
