@@ -108,3 +108,23 @@
 2025-04-07 15:31:11,939 - INFO -  * Restarting with stat
 2025-04-07 15:31:15,153 - WARNING -  * Debugger is active!
 2025-04-07 15:31:15,176 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 15:32:33,616 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 15:32:33,624 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 15:32:33,634 - INFO - 127.0.0.1 - - [07/Apr/2025 15:32:33] "[35m[1mGET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1[0m" 500 -
+2025-04-07 15:32:33,940 - INFO - 127.0.0.1 - - [07/Apr/2025 15:32:33] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 15:33:32,797 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 15:33:32,798 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 15:33:32,799 - INFO - 127.0.0.1 - - [07/Apr/2025 15:33:32] "[35m[1mGET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1[0m" 500 -
+2025-04-07 15:33:32,874 - INFO - 127.0.0.1 - - [07/Apr/2025 15:33:32] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 15:34:27,867 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 15:34:27,870 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 15:34:27,873 - INFO - 127.0.0.1 - - [07/Apr/2025 15:34:27] "[35m[1mGET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1[0m" 500 -
+2025-04-07 15:34:27,935 - INFO - 127.0.0.1 - - [07/Apr/2025 15:34:27] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 15:55:49,901 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 15:55:49,903 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 15:55:49,905 - INFO -  * Restarting with stat
+2025-04-07 15:55:53,108 - WARNING -  * Debugger is active!
+2025-04-07 15:55:53,130 - INFO -  * Debugger PIN: 110-726-745
