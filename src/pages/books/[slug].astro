@@ -36,29 +36,675 @@ async function fetchViews(slug) {
 	}
 }
 
-const views = await fetchViews(post.id);
+// Fetch ratings from Supabase
+async function fetchRatings(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ratings?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    if (data.length > 0) {
+      return {
+        average: parseFloat((data[0].total_rating / data[0].rating_count).toFixed(1)),
+        count: data[0].rating_count
+      };
+    }
+    return { average: 0, count: 0 };
+  } catch (e) {
+    console.error("Error fetching ratings for", slug, e);
+    return { average: 0, count: 0 };
+  }
+}
 
-// ✅ Correct word count and estimated reading time
+// Fetch related books (simplified)
+async function fetchRelatedBooks(currentSlug, category) {
+    try {
+        const allBooks = await getCollection('books');
+        return allBooks
+            .filter(book => book.id !== currentSlug && book.data.category === category)
+            .slice(0, 6); // Get up to 6 books
+    } catch (err) {
+        console.error("Error fetching related books", err);
+        return [];
+    }
+}
+
+const views = await fetchViews(post.id);
+const ratings = await fetchRatings(post.id);
+const relatedBooks = await fetchRelatedBooks(post.id, post.data.category);
+
+// Word count and reading time
 const plainText = post.body;
 const wordCount = plainText.trim().split(/\s+/).length;
 const readingTime = Math.ceil(wordCount / 225); // Avg 225 words/min
+
+// Get Amazon affiliate link
+const amazonLink = post.data.amazonLink || `https://www.amazon.com/s?k=${encodeURIComponent(post.data.title)}&tag=minutereads-20`;
 ---
 
 <BlogPost {...post.data} views={views} wordCount={wordCount} readingTime={readingTime}>
+    <!-- Book action buttons -->
+    <div class="book-actions">
+        <div class="action-container">
+            <button class="bookmark-btn" data-slug={post.id} aria-label="Bookmark this book" title="Save for later">
+                <svg class="bookmark-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M5 3h14a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2z"></path>
+                </svg>
+            </button>
+            
+            <button class="read-btn" data-slug={post.id}>Mark Read</button>
+            
+            <!-- Fixed rating display - stars, then number, then count -->
+            <div class="rating-display" data-slug={post.id}>
+                <span class="stars">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <span class="star" data-rating={i + 1} data-slug={post.id}>
+                            {i < Math.round(ratings?.average || 0) ? '★' : '☆'}
+                        </span>
+                    ))}
+                </span>
+                <span class="rating-value">{ratings?.average.toFixed(1) || "0.0"}</span>
+                <span class="rating-count">({ratings?.count || 0} ratings)</span>
+            </div>
+        </div>
+        
+        <a href={amazonLink} target="_blank" rel="noopener noreferrer" class="get-book-btn">
+            Get This Book Now
+        </a>
+    </div>
+
 	<Content />
-
-	<!-- 👁️ Show view count -->
-	<p style="text-align: right; margin-top: 2rem;">👁️ {views} views</p>
-
+    
+    <!-- Your Next Read Section -->
+    <section class="pair-with-section">
+        <h2>Your Next Read</h2>
+        <p>Find your next read with these recommendations from the MinuteReads archive:</p>
+        
+        <div class="related-books">
+            {relatedBooks.map(book => (
+                <a href={`/books/${book.id}`} class="related-book">
+                    <img src={book.data.cover || '/images/book-placeholder.png'} alt={book.data.title} />
+                    <h3>{book.data.title}</h3>
+                    <p>{book.data.author}</p>
+                </a>
+            ))}
+        </div>
+    </section>
+    
+    <!-- About the Author Section -->
+    <section class="author-section">
+        <h2>About the Author</h2>
+        <div class="author-container">
+            <div class="author-avatar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <div class="author-info">
+                <h3>{post.data.author}</h3>
+                <p id="author-bio">{post.data.authorBio || "No biography available."}</p>
+            </div>
+        </div>
+    </section>
+	
 	<!-- 📊 Track view -->
-	<script is:inline>
-		const slug = location.pathname;
-		fetch(`/api/track-view?slug=${encodeURIComponent(slug)}`, {
+	<script>
+		// Track view
+		const trackSlug = window.location.pathname;
+		fetch(`/api/track-view?slug=${encodeURIComponent(trackSlug)}`, {
 			method: 'POST'
 		}).then(res => {
-			console.log("Tracked view for", slug, res.status);
+			console.log("Tracked view for", trackSlug, res.status);
 		}).catch(err => {
 			console.error("View tracking failed:", err);
 		});
 	</script>
+
+<script>
+// Immediately executed function to avoid global scope pollution
+(function() {
+  console.log("Book details features initializing...");
+  
+  // Run when DOM is fully loaded
+  function initFeatures() {
+    // Get current slug from URL
+    const slug = window.location.pathname.split('/').pop();
+    const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+    
+    // Initialize bookmarks
+    initializeBookmarks();
+    
+    // Initialize read status
+    initializeReadStatus();
+    
+    // Initialize ratings
+    initializeRatings();
+    
+    // Set up bookmark functionality
+    document.querySelectorAll(".bookmark-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleBookmark(slug, this);
+      });
+    });
+    
+    // Set up read functionality
+    document.querySelectorAll(".read-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleReadStatus(slug, this);
+      });
+    });
+    
+    // Set up rating functionality
+    document.querySelectorAll(".star").forEach(star => {
+      star.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const rating = parseInt(this.getAttribute("data-rating"));
+        const slug = this.getAttribute("data-slug");
+        if (rating && slug) submitRating(slug, rating);
+      });
+    });
+    
+    console.log("Book details features initialized");
+  }
+  
+  function initializeBookmarks() {
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      const slug = window.location.pathname.split('/').pop();
+      
+      document.querySelectorAll(".bookmark-btn").forEach(btn => {
+        if (bookmarks.includes(slug)) {
+          btn.classList.add("active");
+        }
+      });
+    } catch (e) {
+      console.error("Error initializing bookmarks:", e);
+    }
+  }
+  
+  function initializeReadStatus() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const readBooks = userStats.readBooks || [];
+      const slug = window.location.pathname.split('/').pop();
+      
+      document.querySelectorAll(".read-btn").forEach(btn => {
+        if (readBooks.includes(slug)) {
+          btn.textContent = "Read";
+          btn.classList.add("read");
+        } else {
+          btn.textContent = "Mark Read";
+          btn.classList.remove("read");
+        }
+      });
+    } catch (e) {
+      console.error("Error initializing read status:", e);
+    }
+  }
+  
+  function initializeRatings() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const slug = window.location.pathname.split('/').pop();
+      
+      if (userStats.ratings && userStats.ratings[slug]) {
+        const userRating = userStats.ratings[slug];
+        const stars = document.querySelectorAll(`.rating-display[data-slug="${slug}"] .star`);
+        
+        stars.forEach((star, index) => {
+          if (index < userRating) {
+            star.textContent = '★';
+          } else {
+            star.textContent = '☆';
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Error initializing ratings:", e);
+    }
+  }
+  
+  function toggleBookmark(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      let pointsAwarded = false;
+      
+      if (bookmarks.includes(slug)) {
+        // Remove bookmark
+        bookmarks = bookmarks.filter(id => id !== slug);
+        button.classList.remove("active");
+        showNotification("Bookmark removed");
+      } else {
+        // Add bookmark
+        bookmarks.push(slug);
+        button.classList.add("active");
+        
+        // Award points for first-time bookmarking
+        if (!userStats.bookmarks || !userStats.bookmarks.includes(slug)) {
+          if (!userStats.points) userStats.points = 0;
+          userStats.points += 5;
+          
+          if (!userStats.bookmarks) userStats.bookmarks = [];
+          userStats.bookmarks.push(slug);
+          
+          if (!userStats.booksBookmarked) userStats.booksBookmarked = 0;
+          userStats.booksBookmarked++;
+          
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+          pointsAwarded = true;
+        }
+        
+        if (pointsAwarded) {
+          showNotification("Book bookmarked! +5 points");
+        } else {
+          showNotification("Book bookmarked!");
+        }
+      }
+      
+      localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+    } catch (e) {
+      console.error("Error toggling bookmark:", e);
+    }
+  }
+  
+  function toggleReadStatus(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      
+      if (!userStats.readBooks) userStats.readBooks = [];
+      if (!userStats.points) userStats.points = 0;
+      if (!userStats.booksRead) userStats.booksRead = 0;
+      
+      if (userStats.readBooks.includes(slug)) {
+        // Remove from read books
+        userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
+        button.textContent = "Mark Read";
+        button.classList.remove("read");
+        
+        // Reduce points (minimum 0)
+        userStats.points = Math.max(0, userStats.points - 10);
+        userStats.booksRead = Math.max(0, userStats.booksRead - 1);
+        
+        showNotification("Read status removed");
+      } else {
+        // Add to read books
+        userStats.readBooks.push(slug);
+        button.textContent = "Read";
+        button.classList.add("read");
+        
+        // Award points
+        userStats.points += 10;
+        userStats.booksRead++;
+        
+        showNotification("Book marked as read! +10 points");
+      }
+      
+      localStorage.setItem("userStats", JSON.stringify(userStats));
+    } catch (e) {
+      console.error("Error toggling read status:", e);
+    }
+  }
+  
+  function submitRating(slug, rating) {
+    if (!slug || !rating) return;
+    
+    try {
+      // Get all stars for this book
+      const starsContainer = document.querySelector(`.rating-display[data-slug="${slug}"] .stars`);
+      if (!starsContainer) return;
+      
+      const stars = starsContainer.querySelectorAll('.star');
+      
+      // Update star UI
+      stars.forEach((star, index) => {
+        star.textContent = (index < rating) ? '★' : '☆';
+      });
+      
+      // Get user stats
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      if (!userStats.ratings) userStats.ratings = {};
+      
+      // Check if user is rating for the first time or increasing rating
+      const previousRating = userStats.ratings[slug] || 0;
+      const shouldAwardPoints = !previousRating || rating > previousRating;
+      
+      // Update rating in user stats
+      userStats.ratings[slug] = rating;
+      
+      // Award points for new or increased rating
+      if (shouldAwardPoints) {
+        if (!userStats.points) userStats.points = 0;
+        userStats.points += 5;
+        
+        if (!userStats.ratingsGiven) userStats.ratingsGiven = 0;
+        userStats.ratingsGiven++;
+        
+        showNotification(`You rated this book ${rating} stars! +5 points`);
+      } else {
+        showNotification(`You rated this book ${rating} stars!`);
+      }
+      
+      localStorage.setItem("userStats", JSON.stringify(userStats));
+      
+      // Update the display of average rating
+      updateRatingDisplay(slug, rating);
+      
+      // Call API to update rating in database
+      updateRatingInDatabase(slug, rating);
+    } catch (e) {
+      console.error("Error submitting rating:", e);
+    }
+  }
+  
+  function updateRatingDisplay(slug, newRating) {
+    // This is a simple client-side implementation
+    // In a real app, you would fetch updated data from the server
+    const ratingDisplay = document.querySelector(`.rating-display[data-slug="${slug}"]`);
+    if (!ratingDisplay) return;
+    
+    const ratingValue = ratingDisplay.querySelector('.rating-value');
+    const countDisplay = ratingDisplay.querySelector('.rating-count');
+    
+    if (ratingValue && countDisplay) {
+      // Extract current values
+      const currentAvg = parseFloat(ratingValue.textContent) || 0;
+      const currentCount = parseInt(countDisplay.textContent.match(/\d+/)[0]) || 0;
+      
+      // Calculate new values (simple client-side simulation)
+      let newCount, newAverage;
+      
+      if (currentCount === 0) {
+        newCount = 1;
+        newAverage = newRating;
+      } else {
+        newCount = currentCount + 1;
+        newAverage = ((currentAvg * currentCount) + newRating) / newCount;
+      }
+      
+      // Update the display
+      ratingValue.textContent = newAverage.toFixed(1);
+      countDisplay.textContent = `(${newCount} ratings)`;
+    }
+  }
+  
+  async function updateRatingInDatabase(slug, rating) {
+    try {
+      const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+      
+      const userId = localStorage.getItem('userId') || 'anonymous';
+      
+      await fetch('/api/update-rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, rating, userId })
+      });
+    } catch (err) {
+      console.error("Error updating rating in database:", err);
+    }
+  }
+  
+  function showNotification(message) {
+    // Create notification element
+    const notification = document.createElement("div");
+    notification.style.position = "fixed";
+    notification.style.bottom = "20px";
+    notification.style.right = "20px";
+    notification.style.backgroundColor = "#4CAF50";
+    notification.style.color = "white";
+    notification.style.padding = "12px 24px";
+    notification.style.borderRadius = "4px";
+    notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+    notification.style.zIndex = "1000";
+    notification.style.transition = "opacity 0.5s";
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 500);
+    }, 3000);
+  }
+  
+  // Execute when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFeatures);
+  } else {
+    initFeatures();
+  }
+})();
+</script>
+	
+<style>
+/* Book actions styling */
+.book-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem 0 2rem;
+    padding: 1rem;
+    background-color: var(--color-bg-secondary);
+    border-radius: 8px;
+}
+
+.action-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.bookmark-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bookmark-icon {
+    width: 24px;
+    height: 24px;
+    stroke: #ccc;
+    fill: none;
+    stroke-width: 2px;
+    transition: all 0.2s ease;
+}
+
+.bookmark-btn.active .bookmark-icon {
+    fill: #f0c14b;
+    stroke: #f0c14b;
+}
+
+.bookmark-btn:hover .bookmark-icon {
+    stroke: #999;
+}
+
+.bookmark-btn.active:hover .bookmark-icon {
+    fill: #e0b13b;
+    stroke: #e0b13b;
+}
+
+.read-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.read-btn.read {
+    background-color: #6c757d;
+}
+
+.rating-display {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.stars {
+    color: #f0c14b;
+    margin-right: 0.3rem;
+}
+
+.star {
+    cursor: pointer;
+    display: inline-block;
+    transition: transform 0.1s;
+}
+
+.star:hover {
+    transform: scale(1.2);
+}
+
+.rating-value {
+    margin-right: 0.3rem;
+}
+
+.rating-count {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.get-book-btn {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.get-book-btn:hover {
+    background-color: var(--color-primary-dark, #0056b3);
+}
+
+/* Pair With section */
+.pair-with-section {
+    margin: 3rem 0;
+    padding: 2rem;
+    background-color: var(--color-bg-secondary);
+    border-radius: 8px;
+}
+
+.related-books {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.related-book {
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s;
+}
+
+.related-book:hover {
+    transform: translateY(-5px);
+}
+
+.related-book img {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.related-book h3 {
+    margin: 0.5rem 0 0.25rem;
+    font-size: 1rem;
+}
+
+.related-book p {
+    margin: 0;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Author section */
+.author-section {
+    margin: 3rem 0;
+    padding: 2rem;
+    background-color: var(--color-bg-secondary);
+    border-radius: 8px;
+}
+
+.author-container {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.author-avatar {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text);
+}
+
+.author-info h3 {
+    margin: 0 0 0.5rem;
+}
+
+.author-info p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .book-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .author-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .related-books {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+}
+</style>
 </BlogPost>
