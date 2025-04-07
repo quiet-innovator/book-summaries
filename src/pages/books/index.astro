@@ -1,15 +1,15 @@
 ---
-import BaseHead from '../../components/BaseHead.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 import { getCollection } from 'astro:content';
-import FormattedDate from '../../components/FormattedDate.astro';
+import FormattedDate from '../components/FormattedDate.astro';
 
 let posts = await getCollection('books');
 
 const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
 
 async function fetchViews(slug) {
   try {
@@ -49,6 +49,8 @@ async function fetchRatings(slug) {
   }
 }
 
+// No need to fetch leaderboard data during build, we'll handle it on client-side
+
 posts = await Promise.all(posts.map(async (post) => {
   const views = await fetchViews(post.id);
   const ratings = await fetchRatings(post.id);
@@ -64,21 +66,25 @@ const allCategories = [...new Set(posts.map(p => p.data.category).filter(Boolean
 const allSubcategories = [...new Set(posts.flatMap(p => p.data.subcategories || []).filter(Boolean))];
 const allLanguages = [...new Set(posts.map(p => p.data.language || 'English').filter(Boolean))];
 
+// Group posts by fiction/non-fiction
 const fictionPosts = posts.filter(p => p.data.isFiction === true);
 const nonFictionPosts = posts.filter(p => p.data.isFiction === false || p.data.isFiction === undefined);
 
+// Group categories by fiction/non-fiction
 const fictionCategories = [...new Set(fictionPosts.map(p => p.data.category).filter(Boolean))];
 const nonFictionCategories = [...new Set(nonFictionPosts.map(p => p.data.category).filter(Boolean))];
 
+// Get subcategories by category
 const subcategoriesByCategory = {};
 allCategories.forEach(category => {
   subcategoriesByCategory[category] = [...new Set(
     posts.filter(p => p.data.category === category)
-         .flatMap(p => p.data.subcategories || [])
-         .filter(Boolean)
+        .flatMap(p => p.data.subcategories || [])
+        .filter(Boolean)
   )];
 });
 
+// Get most popular books for meta description enhancement
 const popularBooks = [...posts].sort((a, b) => (b.data.views || 0) - (a.data.views || 0)).slice(0, 3);
 const popularTitles = popularBooks.map(book => book.data.title).join(", ");
 const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular books including ${popularTitles} and more.`;
@@ -595,6 +601,89 @@ const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular 
           padding: 0.75rem;
         }
       }
+
+      /* Level display styling */
+
+.user-points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  background-color: #f0fdff;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  gap: 1rem;
+}
+
+.user-level {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 1rem;
+  min-width: 110px;
+}
+
+.level-icon {
+  font-size: 1.5rem;
+  background-color: #0070f3;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+}
+
+.level-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.level-info span {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.user-progress {
+  flex: 1;
+  min-width: 200px;
+}
+
+.leaderboard-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.level-indicator {
+  font-size: 1.2rem;
+}
+
+.level-name {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .user-points {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .user-level, .user-progress {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-bar-container {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+}
     </style>
   </head>
   <body>
@@ -606,20 +695,26 @@ const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular 
           <h1>Book Summaries</h1>
         </div>
 
-        <!-- User Points and Badges Section -->
-        <div id="userStats" class="user-points">
-          <div>
-            <strong>My Progress:</strong> <span id="userPointsValue">0</span> points | 
-            <span id="userBooksRead">0</span> books read
-          </div>
-          <div class="progress-bar-container">
-            <div id="userProgressBar" class="progress-bar" style="width: 0%"></div>
-          </div>
-          <div id="userBadges" class="user-badges">
-            <!-- Badges will be added dynamically -->
-          </div>
-        </div>
-
+     <!-- User Points and Badges Section -->
+<!-- Updated User Points and Badges Section with Level -->
+<div id="userStats" class="user-points">
+  <div class="user-level">
+    <div id="currentLevelIcon" class="level-icon">📚</div>
+    <div class="level-info">
+      <span id="currentLevelName">Novice Reader</span>
+    </div>
+  </div>
+  <div class="user-progress">
+    <strong>My Progress:</strong> <span id="userPointsValue">0</span> points | 
+    <span id="userBooksRead">0</span> books
+  </div>
+  <div class="progress-bar-container">
+    <div id="userProgressBar" class="progress-bar" style="width: 0%"></div>
+  </div>
+  <div id="userBadges" class="user-badges">
+    <!-- Badges will be added dynamically -->
+  </div>
+</div>
         <div class="controls">
           <input id="search" class="search-bar" placeholder="Search book summaries..." aria-label="Search books" />
           <select id="sortOptions" class="dropdown" aria-label="Sort options">
@@ -1110,16 +1205,16 @@ const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular 
             leaderboardBody.innerHTML = ""; // Clear loading indicator
             
             const mockData = [
-              { username: "BookMaster", books_read: 42, points: 950, badges: [{ name: "Intellectual", icon: "🎓" }, { name: "Book Master", icon: "🏆" }] },
-              { username: "LiteraryExplorer", books_read: 36, points: 780, badges: [{ name: "Scholar", icon: "🧠" }, { name: "Avid Reader", icon: "📖" }] },
-              { username: "Bibliophile", books_read: 28, points: 620, badges: [{ name: "Century Club", icon: "💯" }, { name: "Curator", icon: "🔖" }] },
-              { username: "PageTurner", books_read: 23, points: 540, badges: [{ name: "Critic", icon: "⭐" }] },
-              { username: "Bookworm", books_read: 19, points: 470, badges: [{ name: "Bookworm", icon: "🐛" }] },
-              { username: "KnowledgeSeeker", books_read: 15, points: 380, badges: [{ name: "First Book Read", icon: "📚" }] },
-              { username: "WordSmith", books_read: 12, points: 320 },
-              { username: "LitLover", books_read: 10, points: 280 },
-              { username: "ReadingRookie", books_read: 7, points: 220 },
-              { username: "NovelNewbie", books_read: 4, points: 160 }
+              { username: "BookMaster", books_read: 42, points: 1250, badges: [{ name: "Intellectual", icon: "🎓" }, { name: "Book Master", icon: "🏆" }] },
+              { username: "LiteraryExplorer", books_read: 36, points: 1050, badges: [{ name: "Scholar", icon: "🧠" }, { name: "Avid Reader", icon: "📖" }] },
+              { username: "Bibliophile", books_read: 28, points: 875, badges: [{ name: "Century Club", icon: "💯" }, { name: "Curator", icon: "🔖" }] },
+              { username: "PageTurner", books_read: 23, points: 725, badges: [{ name: "Critic", icon: "⭐" }] },
+              { username: "Bookworm", books_read: 19, points: 600, badges: [{ name: "Bookworm", icon: "🐛" }] },
+              { username: "KnowledgeSeeker", books_read: 15, points: 500, badges: [{ name: "First Book Read", icon: "📚" }] },
+              { username: "WordSmith", books_read: 12, points: 400 },
+              { username: "LitLover", books_read: 10, points: 300 },
+              { username: "ReadingRookie", books_read: 7, points: 200 },
+              { username: "NovelNewbie", books_read: 4, points: 100 }
             ];
             
             mockData.forEach((user, index) => {
@@ -1432,46 +1527,7 @@ const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular 
               console.error("Error saving user stats:", e);
             }
           }
-          
-          function generateBadges(userStats) {
-            const badges = [];
-            
-            // Reader badges
-            if (userStats.booksRead >= 1) {
-              badges.push({ name: "First Book Read", icon: "📚" });
-            }
-            if (userStats.booksRead >= 5) {
-              badges.push({ name: "Bookworm", icon: "🐛" });
-            }
-            if (userStats.booksRead >= 10) {
-              badges.push({ name: "Avid Reader", icon: "📖" });
-            }
-            if (userStats.booksRead >= 25) {
-              badges.push({ name: "Book Master", icon: "🏆" });
-            }
-            
-            // Points badges
-            if (userStats.points >= 100) {
-              badges.push({ name: "Century Club", icon: "💯" });
-            }
-            if (userStats.points >= 500) {
-              badges.push({ name: "Scholar", icon: "🧠" });
-            }
-            if (userStats.points >= 1000) {
-              badges.push({ name: "Intellectual", icon: "🎓" });
-            }
-            
-            // Activity badges
-            if (userStats.booksBookmarked >= 5) {
-              badges.push({ name: "Curator", icon: "🔖" });
-            }
-            if (userStats.ratingsGiven >= 10) {
-              badges.push({ name: "Critic", icon: "⭐" });
-            }
-            
-            return badges;
-          }
-          
+              // Define reader levels
           function awardPoints(points, activity) {
             const userStats = getUserStats();
             
@@ -2009,5 +2065,1234 @@ const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular 
       </section>
     </main>
     <Footer />
-  </body>
-</html>"<!-- redeploy test -->" 
+
+<script set:html={`
+  window.posts = ${JSON.stringify(posts.map(post => ({
+    id: post.id,
+    title: post.data.title,
+    author: post.data.author,
+    date: post.data.pubDate.toISOString(),
+    rating: post.data.ratings?.average || 0,
+    category: post.data.category,
+    isFiction: post.data.isFiction,
+    language: post.data.language || 'English'
+  })))};
+
+  window.postSlugs = ${JSON.stringify(postSlugs)};
+  window.fictionCategories = ${JSON.stringify(fictionCategories)};
+  window.nonFictionCategories = ${JSON.stringify(nonFictionCategories)};
+  window.subcategoriesByCategory = ${JSON.stringify(subcategoriesByCategory)};
+  window.SUPABASE_URL = "${SUPABASE_URL}";
+  window.SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}";
+`}></script>
+
+<script>
+// Immediately executed function to avoid global scope pollution
+(function() {
+  // Define reader levels globally within our IIFE
+  const readerLevels = [
+    { name: "Novice Reader", icon: "📚", minPoints: 0 },
+    { name: "Book Explorer", icon: "🔍", minPoints: 50 },
+    { name: "Bookworm", icon: "🐛", minPoints: 100 },
+    { name: "Avid Reader", icon: "📖", minPoints: 200 },
+    { name: "Scholar", icon: "🧠", minPoints: 350 },
+    { name: "Bibliophile", icon: "🤓", minPoints: 500 },
+    { name: "Literary Critic", icon: "⭐", minPoints: 750 },
+    { name: "Book Master", icon: "🏆", minPoints: 1000 },
+    { name: "Sage Reader", icon: "🧙", minPoints: 1500 },
+    { name: "Reading Legend", icon: "👑", minPoints: 2000 }
+  ];
+  
+  console.log("Book features initializing...");
+  
+  // Run when DOM is fully loaded
+  function initFeatures() {
+    setupEventListeners();
+    initializeBookmarks();
+    initializeReadStatus();
+    updateUserStats();
+    initializeFilterUI();
+    console.log("Book features initialized");
+  }
+  
+  // Setup all event listeners for the page
+  function setupEventListeners() {
+    // Search functionality
+    const searchInput = document.getElementById("search");
+    if (searchInput) {
+      searchInput.addEventListener("input", filterPosts);
+    }
+    
+    // Sort dropdown
+    const sortOptions = document.getElementById("sortOptions");
+    if (sortOptions) {
+      sortOptions.addEventListener("change", sortPosts);
+    }
+    
+    // Random book button
+    const randomBtn = document.getElementById("randomBook");
+    if (randomBtn) {
+      randomBtn.addEventListener("click", function() {
+        const items = document.querySelectorAll(".post-item");
+        if (items.length === 0) return;
+        
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        const link = randomItem.querySelector("a");
+        if (link && link.href) {
+          window.location.href = link.href;
+        }
+      });
+    }
+    
+    // Bookmarks modal
+    const bookmarksBtn = document.getElementById("bookmarksBtn");
+    const bookmarksModal = document.getElementById("bookmarksModal");
+    if (bookmarksBtn && bookmarksModal) {
+      bookmarksBtn.addEventListener("click", function() {
+        renderBookmarksList();
+        bookmarksModal.style.display = "flex";
+      });
+    }
+    
+    // Close bookmarks modal
+    const closeBookmarks = document.getElementById("closeBookmarks");
+    if (closeBookmarks && bookmarksModal) {
+      closeBookmarks.addEventListener("click", function() {
+        bookmarksModal.style.display = "none";
+      });
+    }
+    
+    // Closing modal by clicking outside
+    if (bookmarksModal) {
+      bookmarksModal.addEventListener("click", function(e) {
+        if (e.target === this) {
+          this.style.display = "none";
+        }
+      });
+    }
+    
+    // Export bookmarks
+    const exportBookmarks = document.getElementById("exportBookmarks");
+    if (exportBookmarks) {
+      exportBookmarks.addEventListener("click", exportBookmarksList);
+    }
+    
+    // Leaderboard modal
+    const leaderboardBtn = document.getElementById("leaderboardBtn");
+    const leaderboardModal = document.getElementById("leaderboardModal");
+    if (leaderboardBtn && leaderboardModal) {
+      leaderboardBtn.addEventListener("click", function() {
+        populateLeaderboard();
+        leaderboardModal.style.display = "flex";
+      });
+    }
+    
+    // Close leaderboard modal
+    const closeLeaderboard = document.getElementById("closeLeaderboard");
+    if (closeLeaderboard && leaderboardModal) {
+      closeLeaderboard.addEventListener("click", function() {
+        leaderboardModal.style.display = "none";
+      });
+    }
+    
+    // Closing modal by clicking outside
+    if (leaderboardModal) {
+      leaderboardModal.addEventListener("click", function(e) {
+        if (e.target === this) {
+          this.style.display = "none";
+        }
+      });
+    }
+    
+    // Clear filters button
+    const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener("click", clearFilters);
+    }
+    
+    // Top rated button
+    const topRatedBtn = document.getElementById("topRatedBtn");
+    if (topRatedBtn) {
+      topRatedBtn.addEventListener("click", function() {
+        if (sortOptions) {
+          sortOptions.value = "rated";
+          sortPosts();
+        }
+      });
+    }
+    
+    // Tag filtering
+    document.querySelectorAll(".tag, .category-filter").forEach(el => {
+      el.addEventListener("click", function(e) {
+        e.preventDefault();
+        const tag = this.getAttribute("data-tag");
+        if (tag) filterByTag(tag);
+      });
+    });
+    
+    // Author filtering
+    document.querySelectorAll(".author-filter").forEach(el => {
+      el.addEventListener("click", function(e) {
+        e.preventDefault();
+        const author = this.getAttribute("data-author");
+        if (author) filterByAuthor(author);
+      });
+    });
+    
+    // Bookmark buttons
+    document.querySelectorAll(".bookmark-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleBookmark(slug, this);
+      });
+    });
+    
+    // Read status buttons
+    document.querySelectorAll(".read-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleReadStatus(slug, this);
+      });
+    });
+    
+    // Rating stars
+    document.querySelectorAll(".star").forEach(star => {
+      star.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const rating = parseInt(this.getAttribute("data-rating"));
+        const slug = this.getAttribute("data-slug");
+        if (rating && slug) submitRating(slug, rating);
+      });
+    });
+  }
+  
+  // ---- FILTER FUNCTIONS ----
+  
+  function filterPosts() {
+    const searchInput = document.getElementById("search");
+    if (!searchInput) return;
+    
+    const query = searchInput.value.toLowerCase();
+    let visibleCount = 0;
+    
+    document.querySelectorAll(".post-item").forEach(item => {
+      const title = (item.getAttribute("data-title") || "").toLowerCase();
+      const author = (item.getAttribute("data-author") || "").toLowerCase();
+      const desc = (item.getAttribute("data-description") || "").toLowerCase();
+      const tags = (item.getAttribute("data-tags") || "").toLowerCase();
+      
+      const match = title.includes(query) || 
+                   author.includes(query) || 
+                   desc.includes(query) || 
+                   tags.includes(query);
+      
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+  
+  function filterByTag(tag) {
+    if (!tag) return;
+    
+    // Reset active state on all tag buttons
+    document.querySelectorAll(".tag, .category-filter").forEach(el => {
+      el.classList.toggle("active-tag", el.getAttribute("data-tag") === tag);
+    });
+    
+    let visibleCount = 0;
+    
+    document.querySelectorAll(".post-item").forEach(item => {
+      const tags = (item.getAttribute("data-tags") || "").toLowerCase();
+      const match = tags.includes(tag.toLowerCase());
+      
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+  
+  function filterByAuthor(author) {
+    if (!author) return;
+    
+    // Reset active state on all author buttons
+    document.querySelectorAll(".author-filter").forEach(btn => {
+      btn.classList.toggle("active-tag", btn.getAttribute("data-author") === author);
+    });
+    
+    let visibleCount = 0;
+    
+    document.querySelectorAll(".post-item").forEach(item => {
+      const match = item.getAttribute("data-author") === author;
+      
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+  
+  function sortPosts() {
+    const sortOptions = document.getElementById("sortOptions");
+    const postList = document.getElementById("postList");
+    if (!sortOptions || !postList) return;
+    
+    const sortBy = sortOptions.value;
+    const items = Array.from(postList.children);
+    
+    items.sort((a, b) => {
+      if (sortBy === "popular") {
+        return (parseInt(b.getAttribute("data-views") || 0) - 
+                parseInt(a.getAttribute("data-views") || 0));
+      }
+      else if (sortBy === "oldest") {
+        return (new Date(a.getAttribute("data-date") || 0) - 
+                new Date(b.getAttribute("data-date") || 0));
+      }
+      else if (sortBy === "rated") {
+        return (parseFloat(b.getAttribute("data-rating") || 0) - 
+                parseFloat(a.getAttribute("data-rating") || 0));
+      }
+      else {
+        // Default: newest
+        return (new Date(b.getAttribute("data-date") || 0) - 
+                new Date(a.getAttribute("data-date") || 0));
+      }
+    });
+    
+    // Remove all items
+    while (postList.firstChild) {
+      postList.removeChild(postList.firstChild);
+    }
+    
+    // Add sorted items
+    items.forEach(item => postList.appendChild(item));
+  }
+  
+  function clearFilters() {
+    // Reset search box
+    const searchInput = document.getElementById("search");
+    if (searchInput) searchInput.value = "";
+    
+    // Show all items
+    document.querySelectorAll(".post-item").forEach(item => {
+      item.style.display = "";
+    });
+    
+    // Remove active class from all filter buttons
+    document.querySelectorAll(".tag, .author-filter, .category-filter").forEach(el => {
+      el.classList.remove("active-tag");
+    });
+    
+    // Reset advanced filter UI
+    document.querySelectorAll(".filter-option").forEach(opt => 
+      opt.classList.remove("selected"));
+    
+    showFilterStep("Language");
+    
+    // Clear filter preferences
+    window.selectedLanguage = null;
+    window.selectedType = null;
+    window.selectedCategory = null;
+    window.selectedSubcategory = null;
+    
+    try {
+      localStorage.removeItem("bookFilter");
+    } catch (e) {}
+    
+    // Hide no results message
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = "none";
+    }
+  }
+  
+  // ---- BOOKMARKS FUNCTIONALITY ----
+  
+  function initializeBookmarks() {
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      
+      document.querySelectorAll(".bookmark-btn").forEach(btn => {
+        const slug = btn.getAttribute("data-slug");
+        if (bookmarks.includes(slug)) {
+          btn.classList.add("active");
+        }
+      });
+    } catch (e) {
+      console.error("Error initializing bookmarks:", e);
+    }
+  }
+  
+  function toggleBookmark(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      let pointsAwarded = false;
+      
+      if (bookmarks.includes(slug)) {
+        // Remove bookmark
+        bookmarks = bookmarks.filter(id => id !== slug);
+        button.classList.remove("active");
+      } else {
+        // Add bookmark
+        bookmarks.push(slug);
+        button.classList.add("active");
+        
+        // Award points for first-time bookmarking
+        if (!userStats.bookmarks || !userStats.bookmarks.includes(slug)) {
+          if (!userStats.points) userStats.points = 0;
+          userStats.points += 5;
+          
+          if (!userStats.bookmarks) userStats.bookmarks = [];
+          userStats.bookmarks.push(slug);
+          
+          if (!userStats.booksBookmarked) userStats.booksBookmarked = 0;
+          userStats.booksBookmarked++;
+          
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+          pointsAwarded = true;
+          updateUserStats();
+        }
+      }
+      
+      localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+      
+      if (pointsAwarded) {
+        showNotification("🎉 +5 points for bookmarking!");
+      }
+    } catch (e) {
+      console.error("Error toggling bookmark:", e);
+    }
+  }
+  
+  function renderBookmarksList() {
+    const bookmarksList = document.getElementById("bookmarksList");
+    if (!bookmarksList) return;
+    
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      
+      // Clear existing content
+      bookmarksList.innerHTML = "";
+      
+      if (bookmarks.length === 0) {
+        bookmarksList.innerHTML = 
+          '<div class="empty-bookmarks">You haven\'t bookmarked any book summaries yet.</div>';
+        return;
+      }
+      
+      // Create a list for bookmarked posts
+      const bookmarkedItems = [];
+      
+      document.querySelectorAll(".post-item").forEach(item => {
+        const slug = item.getAttribute("data-slug");
+        if (bookmarks.includes(slug)) {
+          const titleEl = item.querySelector("h3");
+          const authorEl = item.querySelector(".author");
+          
+          bookmarkedItems.push({
+            id: slug,
+            title: titleEl ? titleEl.textContent : "Unknown Title",
+            author: authorEl ? authorEl.textContent.replace("By ", "") : "",
+            date: item.getAttribute("data-date")
+          });
+        }
+      });
+      
+      const list = document.createElement("ul");
+      list.style.display = "block"; // Override flex display
+      
+      bookmarkedItems.forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <h3><a href="/books/${item.id}/">${item.title}</a></h3>
+          ${item.author ? `<p class="author">By ${item.author}</p>` : ''}
+          <p class="date">${new Date(item.date).toLocaleDateString()}</p>
+          <button class="remove-bookmark" data-slug="${item.id}">Remove</button>
+        `;
+        list.appendChild(li);
+      });
+      
+      bookmarksList.appendChild(list);
+      
+      // Add event listeners for remove buttons
+      document.querySelectorAll(".remove-bookmark").forEach(btn => {
+        btn.addEventListener("click", function() {
+          const slug = this.getAttribute("data-slug");
+          if (!slug) return;
+          
+          try {
+            const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]")
+              .filter(id => id !== slug);
+            
+            localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+            
+            // Update UI
+            document.querySelectorAll(`.bookmark-btn[data-slug="${slug}"]`).forEach(b => {
+              b.classList.remove("active");
+            });
+            
+            renderBookmarksList();
+          } catch (e) {
+            console.error("Error removing bookmark:", e);
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error rendering bookmarks list:", e);
+    }
+  }
+  
+  function exportBookmarksList() {
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      
+      if (bookmarks.length === 0) {
+        alert("You don't have any bookmarked summaries to export.");
+        return;
+      }
+      
+      // Get bookmarked books
+      const bookmarkedItems = [];
+      
+      document.querySelectorAll(".post-item").forEach(item => {
+        const slug = item.getAttribute("data-slug");
+        if (bookmarks.includes(slug)) {
+          const titleEl = item.querySelector("h3");
+          const authorEl = item.querySelector(".author");
+          
+          bookmarkedItems.push({
+            title: titleEl ? titleEl.textContent : "Unknown Title",
+            author: authorEl ? authorEl.textContent.replace("By ", "") : ""
+          });
+        }
+      });
+      
+      // Format as text
+      let exportText = "# My Bookmarked Book Summaries\n\n";
+      
+      bookmarkedItems.forEach(item => {
+        exportText += `- ${item.title}${item.author ? ` by ${item.author}` : ''}\n`;
+      });
+      
+      // Create download
+      const blob = new Blob([exportText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'my_bookmarked_summaries.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Error exporting bookmarks:", e);
+    }
+  }
+  
+  // ---- READ STATUS FUNCTIONALITY ----
+  
+  function initializeReadStatus() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const readBooks = userStats.readBooks || [];
+      
+      document.querySelectorAll(".read-btn").forEach(btn => {
+        const slug = btn.getAttribute("data-slug");
+        if (readBooks.includes(slug)) {
+          btn.textContent = "Read";
+          btn.classList.add("read");
+        } else {
+          btn.textContent = "Mark Read";
+          btn.classList.remove("read");
+        }
+      });
+    } catch (e) {
+      console.error("Error initializing read status:", e);
+    }
+  }
+  
+  function toggleReadStatus(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      
+      if (!userStats.readBooks) userStats.readBooks = [];
+      if (!userStats.points) userStats.points = 0;
+      if (!userStats.booksRead) userStats.booksRead = 0;
+      
+      if (userStats.readBooks.includes(slug)) {
+        // Remove from read books
+        userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
+        button.textContent = "Mark Read";
+        button.classList.remove("read");
+        
+        // Reduce points (minimum 0)
+        userStats.points = Math.max(0, userStats.points - 10);
+        userStats.booksRead = Math.max(0, userStats.booksRead - 1);
+      } else {
+        // Add to read books
+        userStats.readBooks.push(slug);
+        button.textContent = "Read";
+        button.classList.add("read");
+        
+        // Award points
+        userStats.points += 10;
+        userStats.booksRead++;
+        
+        showNotification("🎉 +10 points for reading!");
+      }
+      
+      localStorage.setItem("userStats", JSON.stringify(userStats));
+      updateUserStats();
+    } catch (e) {
+      console.error("Error toggling read status:", e);
+    }
+  }
+  
+  // ---- RATINGS FUNCTIONALITY ----
+  
+  function submitRating(slug, rating) {
+    if (!slug || !rating) return;
+    
+    try {
+      // Get all stars for this book
+      const starsContainer = document.querySelector(`.rating-display[data-slug="${slug}"] .stars`);
+      if (!starsContainer) return;
+      
+      const stars = starsContainer.querySelectorAll('.star');
+      
+      // Update star UI
+      stars.forEach((star, index) => {
+        star.textContent = (index < rating) ? '★' : '☆';
+      });
+      
+      // Update the display
+      const ratingDisplay = starsContainer.nextElementSibling;
+      const countDisplay = ratingDisplay?.nextElementSibling;
+      
+      if (ratingDisplay && countDisplay) {
+        const item = document.querySelector(`.post-item[data-slug="${slug}"]`);
+        if (!item) return;
+        
+        const currentRating = parseFloat(item.getAttribute('data-rating') || '0');
+        const currentCount = parseInt(item.getAttribute('data-rating-count') || '0');
+        
+        // Calculate new rating
+        let newCount, newAverage;
+        
+        if (currentCount === 0) {
+          newCount = 1;
+          newAverage = rating;
+        } else {
+          newCount = currentCount + 1;
+          newAverage = ((currentRating * currentCount) + rating) / newCount;
+        }
+        
+        // Update displays
+        ratingDisplay.textContent = newAverage.toFixed(1);
+        countDisplay.textContent = `(${newCount} ratings)`;
+        
+        // Update data attributes
+        item.setAttribute('data-rating', newAverage);
+        item.setAttribute('data-rating-count', newCount);
+        
+        // Award points for rating
+        let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+        
+        if (!userStats.ratings) userStats.ratings = {};
+        
+        if (!userStats.ratings[slug]) {
+          userStats.ratings[slug] = rating;
+          
+          if (!userStats.points) userStats.points = 0;
+          userStats.points += 3;
+          
+          if (!userStats.ratingsGiven) userStats.ratingsGiven = 0;
+          userStats.ratingsGiven++;
+          
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+          updateUserStats();
+          showNotification("🎉 +3 points for rating!");
+        } else {
+          // Update existing rating
+          userStats.ratings[slug] = rating;
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+        }
+      }
+    } catch (e) {
+      console.error("Error submitting rating:", e);
+    }
+  }
+  
+  // ---- USER STATS & GAMIFICATION ----
+  
+  function updateUserStats() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const points = userStats.points || 0;
+      
+      // Update points display
+      const pointsEl = document.getElementById("userPointsValue");
+      if (pointsEl) pointsEl.textContent = points;
+      
+      // Update books read count
+      const booksReadEl = document.getElementById("userBooksRead");
+      if (booksReadEl) booksReadEl.textContent = userStats.booksRead || 0;
+      
+      // Update user level
+      const currentLevel = updateUserLevel(points);
+      
+      // Calculate progress to next level
+      let progressPercent;
+      const levelIndex = readerLevels.findIndex(level => level.name === currentLevel.name);
+      if (levelIndex < readerLevels.length - 1) {
+        const nextLevel = readerLevels[levelIndex + 1];
+        const pointsForCurrentLevel = points - currentLevel.minPoints;
+        const pointsNeededForNextLevel = nextLevel.minPoints - currentLevel.minPoints;
+        progressPercent = Math.min(100, (pointsForCurrentLevel / pointsNeededForNextLevel) * 100);
+      } else {
+        // Already at max level
+        progressPercent = 100;
+      }
+      
+      // Update progress bar
+      const progressBar = document.getElementById("userProgressBar");
+      if (progressBar) {
+        progressBar.style.width = `${progressPercent}%`;
+      }
+      
+      // Update badges
+      const badgesContainer = document.getElementById("userBadges");
+      if (badgesContainer) {
+        badgesContainer.innerHTML = '';
+        
+        // Generate badges based on achievements
+        const badges = generateBadges(userStats);
+        
+        badges.forEach(badge => {
+          const badgeElement = document.createElement("span");
+          badgeElement.className = "badge-tooltip";
+          badgeElement.setAttribute("data-tooltip", badge.name);
+          
+          const badgeIcon = document.createElement("span");
+          badgeIcon.className = "badge";
+          badgeIcon.innerHTML = badge.icon;
+          
+          badgeElement.appendChild(badgeIcon);
+          badgesContainer.appendChild(badgeElement);
+        });
+      }
+      
+      // Initialize read status for books
+      updateReadStatusUI();
+    } catch (e) {
+      console.error("Error updating user stats:", e);
+    }
+  }
+
+  function updateUserLevel(points) {
+    // Find the highest level that the user qualifies for
+    let currentLevel = readerLevels[0]; // Default to first level
+    
+    for (let i = readerLevels.length - 1; i >= 0; i--) {
+      if (points >= readerLevels[i].minPoints) {
+        currentLevel = readerLevels[i];
+        break;
+      }
+    }
+    
+    // Update the level display
+    const levelIcon = document.getElementById('currentLevelIcon');
+    const levelName = document.getElementById('currentLevelName');
+    
+    if (levelIcon) levelIcon.textContent = currentLevel.icon;
+    if (levelName) levelName.textContent = currentLevel.name;
+    
+    return currentLevel;
+  }
+  
+  function generateBadges(userStats) {
+    const badges = [];
+    
+    // Reader badges
+    if (userStats.booksRead >= 1) {
+      badges.push({ name: "First Book Read", icon: "📚" });
+    }
+    if (userStats.booksRead >= 5) {
+      badges.push({ name: "Bookworm", icon: "🐛" });
+    }
+    if (userStats.booksRead >= 10) {
+      badges.push({ name: "Avid Reader", icon: "📖" });
+    }
+    if (userStats.booksRead >= 25) {
+      badges.push({ name: "Book Master", icon: "🏆" });
+    }
+    
+    // Points badges
+    if (userStats.points >= 100) {
+      badges.push({ name: "Century Club", icon: "💯" });
+    }
+    if (userStats.points >= 500) {
+      badges.push({ name: "Scholar", icon: "🧠" });
+    }
+    if (userStats.points >= 1000) {
+      badges.push({ name: "Intellectual", icon: "🎓" });
+    }
+    
+    // Activity badges
+    if (userStats.booksBookmarked >= 5) {
+      badges.push({ name: "Curator", icon: "🔖" });
+    }
+    if (userStats.ratingsGiven >= 10) {
+      badges.push({ name: "Critic", icon: "⭐" });
+    }
+    
+    return badges;
+  }
+  
+  function showNotification(message) {
+    const notification = document.createElement("div");
+    notification.style.position = "fixed";
+    notification.style.bottom = "20px";
+    notification.style.right = "20px";
+    notification.style.backgroundColor = "#4CAF50";
+    notification.style.color = "white";
+    notification.style.padding = "12px 24px";
+    notification.style.borderRadius = "4px";
+    notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+    notification.style.zIndex = "1000";
+    notification.style.transition = "opacity 0.5s";
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 500);
+    }, 3000);
+  }
+  
+  // ---- LEADERBOARD FUNCTIONALITY ----
+  
+  async function populateLeaderboard() {
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    if (!leaderboardBody) return;
+    
+    // Start with loading indicator
+    leaderboardBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 1rem;">
+          Loading leaderboard data...
+        </td>
+      </tr>
+    `;
+    
+    try {
+      // Try to fetch from Supabase if configured
+      let data = [];
+      const SUPABASE_URL = window.SUPABASE_URL;
+      const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+      
+      if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/user_points?order=points.desc&limit=10`, {
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+            }
+          });
+          data = await res.json();
+        } catch (err) {
+          console.error("Error fetching leaderboard:", err);
+        }
+      }
+      
+      // If we have data, use it, otherwise use mock data
+      if (Array.isArray(data) && data.length > 0) {
+        displayLeaderboardData(data);
+      } else {
+        displayMockLeaderboardData();
+      }
+    } catch (e) {
+      console.error("Error populating leaderboard:", e);
+      displayMockLeaderboardData();
+    }
+  }
+  
+  // Add level to leaderboard data
+  function addLevelToLeaderboard(data) {
+    return data.map(user => {
+      // Determine user level based on points
+      let userLevel = readerLevels[0]; // Default to first level
+      for (let i = readerLevels.length - 1; i >= 0; i--) {
+        if (user.points >= readerLevels[i].minPoints) {
+          userLevel = readerLevels[i];
+          break;
+        }
+      }
+      
+      // Add level to user object
+      return {...user, level: userLevel};
+    });
+  }
+  
+  function displayLeaderboardData(data) {
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    if (!leaderboardBody) return;
+    
+    // Add levels to data
+    data = addLevelToLeaderboard(data);
+    
+    leaderboardBody.innerHTML = '';
+    
+    data.forEach((user, index) => {
+      const badges = user.badges || [];
+      const badgesHtml = Array.isArray(badges) ? badges.map(badge => 
+        `<span class="badge-tooltip" data-tooltip="${badge.name || ''}">
+          <span class="badge">${badge.icon || '🏅'}</span>
+        </span>`
+      ).join('') : '';
+      
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>
+          <div class="leaderboard-user">
+            <span class="level-indicator">${user.level.icon}</span>
+            ${user.username || 'Anonymous Reader'}
+            <span class="level-name">${user.level.name}</span>
+          </div>
+        </td>
+        <td>${user.books_read || 0}</td>
+        <td>${user.points || 0}</td>
+        <td>${badgesHtml || ''}</td>
+      `;
+      
+      leaderboardBody.appendChild(row);
+    });
+  }
+  
+  function displayMockLeaderboardData() {
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    if (!leaderboardBody) return;
+    
+    leaderboardBody.innerHTML = ''; // Clear loading indicator
+    
+    const mockData = [
+      { username: "BookMaster", books_read: 42, points: 1250, badges: [{ name: "Intellectual", icon: "🎓" }, { name: "Book Master", icon: "🏆" }] },
+      { username: "LiteraryExplorer", books_read: 36, points: 1050, badges: [{ name: "Scholar", icon: "🧠" }, { name: "Avid Reader", icon: "📖" }] },
+      { username: "Bibliophile", books_read: 28, points: 875, badges: [{ name: "Century Club", icon: "💯" }, { name: "Curator", icon: "🔖" }] },
+      { username: "PageTurner", books_read: 23, points: 725, badges: [{ name: "Critic", icon: "⭐" }] },
+      { username: "Bookworm", books_read: 19, points: 600, badges: [{ name: "Bookworm", icon: "🐛" }] },
+      { username: "KnowledgeSeeker", books_read: 15, points: 500, badges: [{ name: "First Book Read", icon: "📚" }] },
+      { username: "WordSmith", books_read: 12, points: 400 },
+      { username: "LitLover", books_read: 10, points: 300 },
+      { username: "ReadingRookie", books_read: 7, points: 200 },
+      { username: "NovelNewbie", books_read: 4, points: 100 }
+    ];
+    
+    // Add levels to mock data
+    const dataWithLevels = addLevelToLeaderboard(mockData);
+    
+    dataWithLevels.forEach((user, index) => {
+      const badges = user.badges || [];
+      const badgesHtml = badges.map(badge => 
+        `<span class="badge-tooltip" data-tooltip="${badge.name}">
+          <span class="badge">${badge.icon}</span>
+        </span>`
+      ).join('');
+      
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>
+          <div class="leaderboard-user">
+            <span class="level-indicator">${user.level.icon}</span>
+            ${user.username}
+            <span class="level-name">${user.level.name}</span>
+          </div>
+        </td>
+        <td>${user.books_read}</td>
+        <td>${user.points}</td>
+        <td>${badgesHtml}</td>
+      `;
+      
+      leaderboardBody.appendChild(row);
+    });
+  }
+
+  // ---- ENHANCED FILTERING UI ----
+  
+  function initializeFilterUI() {
+    // Setup navigation between steps
+    document.getElementById("navLanguage")?.addEventListener("click", () => showFilterStep("Language"));
+    document.getElementById("navType")?.addEventListener("click", () => showFilterStep("Type"));
+    document.getElementById("navCategory")?.addEventListener("click", () => showFilterStep("Category"));
+    document.getElementById("navSubcategory")?.addEventListener("click", () => showFilterStep("Subcategory"));
+    
+    // Setup language selection
+    document.querySelectorAll("#stepLanguage .filter-option").forEach(option => {
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepLanguage .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedLanguage = this.getAttribute("data-language");
+        
+        // Move to next step
+        showFilterStep("Type");
+      });
+    });
+    
+    // Setup type selection (fiction/non-fiction)
+    document.querySelectorAll("#stepType .filter-option").forEach(option => {
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepType .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedType = this.getAttribute("data-type");
+        
+        // Populate categories
+        populateCategoryOptions(window.selectedType);
+        
+        // Move to next step
+        showFilterStep("Category");
+      });
+    });
+    
+    // Apply initial filter if saved
+    try {
+      const savedFilter = JSON.parse(localStorage.getItem("bookFilter") || "{}");
+      if (savedFilter.language) {
+        const languageOption = document.querySelector(
+          `#stepLanguage .filter-option[data-language="${savedFilter.language}"]`);
+        if (languageOption) {
+          languageOption.click();
+        }
+      }
+    } catch (e) {
+      console.error("Error applying saved filter:", e);
+    }
+  }
+  
+  function showFilterStep(step) {
+    // Hide all steps
+    document.querySelectorAll(".filter-step").forEach(el => 
+      el.classList.remove("active"));
+    
+    // Show selected step
+    const stepEl = document.getElementById(`step${step}`);
+    if (stepEl) stepEl.classList.add("active");
+    
+    // Update navigation
+    document.querySelectorAll(".filter-nav-item").forEach(el => 
+      el.classList.remove("active"));
+    
+    const navEl = document.getElementById(`nav${step}`);
+    if (navEl) navEl.classList.add("active");
+  }
+  
+  function populateCategoryOptions(type) {
+    if (!type) return;
+    
+    const categoryOptions = document.getElementById("categoryOptions");
+    if (!categoryOptions) return;
+    
+    // Clear existing options
+    categoryOptions.innerHTML = "";
+    
+    // Get categories based on type
+    const fictionCategories = window.fictionCategories || [];
+    const nonFictionCategories = window.nonFictionCategories || [];
+    const categories = type === "fiction" ? fictionCategories : nonFictionCategories;
+    
+    // Add each category
+    categories.forEach(category => {
+      const option = document.createElement("span");
+      option.className = "filter-option";
+      option.setAttribute("data-category", category);
+      option.textContent = category;
+      
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepCategory .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedCategory = category;
+        
+        // Populate subcategories
+        populateSubcategoryOptions(category);
+        
+        // Move to next step
+        showFilterStep("Subcategory");
+      });
+      
+      categoryOptions.appendChild(option);
+    });
+  }
+  
+  function populateSubcategoryOptions(category) {
+    if (!category) return;
+    
+    const subcategoryOptions = document.getElementById("subcategoryOptions");
+    if (!subcategoryOptions) return;
+    
+    // Clear existing options
+    subcategoryOptions.innerHTML = "";
+    
+    // Add "All" option first
+    const allOption = document.createElement("span");
+    allOption.className = "filter-option selected";
+    allOption.setAttribute("data-subcategory", "all");
+    allOption.textContent = "All";
+    
+    allOption.addEventListener("click", function() {
+      // Reset selected options
+      document.querySelectorAll("#stepSubcategory .filter-option").forEach(opt => 
+        opt.classList.remove("selected"));
+      
+      // Mark this option as selected
+      this.classList.add("selected");
+      
+      // Store selection
+      window.selectedSubcategory = "all";
+      
+      // Apply filter
+      applyAdvancedFilter();
+    });
+    
+    subcategoryOptions.appendChild(allOption);
+    
+    // Get subcategories for this category
+    const subcategoriesByCategory = window.subcategoriesByCategory || {};
+    const subcategories = subcategoriesByCategory[category] || [];
+    
+    subcategories.forEach(subcategory => {
+      const option = document.createElement("span");
+      option.className = "filter-option";
+      option.setAttribute("data-subcategory", subcategory);
+      option.textContent = subcategory;
+      
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepSubcategory .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedSubcategory = subcategory;
+        
+        // Apply filter
+        applyAdvancedFilter();
+      });
+      
+      subcategoryOptions.appendChild(option);
+    });
+    
+    // If no subcategories, apply filter with "all"
+    if (subcategories.length === 0) {
+      window.selectedSubcategory = "all";
+      applyAdvancedFilter();
+    }
+  }
+  
+  function applyAdvancedFilter() {
+    let visibleCount = 0;
+    
+    document.querySelectorAll("#postList .post-item").forEach(item => {
+      const language = (item.getAttribute("data-language") || "").toLowerCase();
+      const fiction = item.getAttribute("data-fiction");
+      const category = (item.getAttribute("data-category") || "").toLowerCase();
+      const subcategories = (item.getAttribute("data-subcategories") || "").toLowerCase();
+      
+      let shouldShow = true;
+      
+      if (window.selectedLanguage && language !== window.selectedLanguage.toLowerCase()) {
+        shouldShow = false;
+      }
+      
+      if (shouldShow && window.selectedType && fiction !== window.selectedType) {
+        shouldShow = false;
+      }
+      
+      if (shouldShow && window.selectedCategory && category !== window.selectedCategory.toLowerCase()) {
+        shouldShow = false;
+      }
+      
+      if (shouldShow && window.selectedSubcategory && window.selectedSubcategory !== "all") {
+        if (!subcategories.includes(window.selectedSubcategory.toLowerCase())) {
+          shouldShow = false;
+        }
+      }
+      
+      item.style.display = shouldShow ? "" : "none";
+      if (shouldShow) visibleCount++;
+    });
+    
+    // Show/hide no results message
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+    
+    // Save filter preferences
+    try {
+      const filter = {
+        language: window.selectedLanguage,
+        type: window.selectedType,
+        category: window.selectedCategory,
+        subcategory: window.selectedSubcategory
+      };
+      
+      localStorage.setItem("bookFilter", JSON.stringify(filter));
+    } catch (e) {
+      console.error("Error saving filter preferences:", e);
+    }
+  }
+  
+  // Execute when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFeatures);
+  } else {
+    initFeatures();
+  }
+})();
+</script>

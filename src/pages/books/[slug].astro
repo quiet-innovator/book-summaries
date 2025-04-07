@@ -1,64 +1,228 @@
----
-import { type CollectionEntry, getCollection } from 'astro:content';
-import BlogPost from '../../layouts/BlogPost.astro';
-import { render } from 'astro:content';
-
-// Supabase credentials
-const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
-
-export async function getStaticPaths() {
-	const posts = await getCollection('books');
-	return posts.map((post) => ({
-		params: { slug: post.id },
-		props: post,
-	}));
-}
-
-type Props = CollectionEntry<'books'>;
-const post = Astro.props;
-const { Content } = await render(post);
-
-// Fetch views from Supabase
-async function fetchViews(slug) {
-	try {
-		const res = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
-			headers: {
-				apikey: SUPABASE_ANON_KEY,
-				Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-			}
-		});
-		const data = await res.json();
-		return data.length > 0 ? data[0].views : 0;
-	} catch (err) {
-		console.error("Error fetching views", err);
-		return 0;
-	}
-}
-
-const views = await fetchViews(post.id);
-
-// ✅ Correct word count and estimated reading time
-const plainText = post.body;
-const wordCount = plainText.trim().split(/\s+/).length;
-const readingTime = Math.ceil(wordCount / 225); // Avg 225 words/min
----
-
-<BlogPost {...post.data} views={views} wordCount={wordCount} readingTime={readingTime}>
-	<Content />
-
-	<!-- 👁️ Show view count -->
-	<p style="text-align: right; margin-top: 2rem;">👁️ {views} views</p>
-
-	<!-- 📊 Track view -->
-	<script is:inline>
-		const slug = location.pathname;
-		fetch(`/api/track-view?slug=${encodeURIComponent(slug)}`, {
-			method: 'POST'
-		}).then(res => {
-			console.log("Tracked view for", slug, res.status);
-		}).catch(err => {
-			console.error("View tracking failed:", err);
-		});
-	</script>
-</BlogPost>
+// Immediately executed function to avoid global scope pollution
+(function() {
+  // Define reader levels globally within our IIFE
+  const readerLevels = [
+    { name: "Novice Reader", icon: "📚", minPoints: 0 },
+    { name: "Book Explorer", icon: "🔍", minPoints: 50 },
+    { name: "Bookworm", icon: "🐛", minPoints: 100 },
+    { name: "Avid Reader", icon: "📖", minPoints: 200 },
+    { name: "Scholar", icon: "🧠", minPoints: 350 },
+    { name: "Bibliophile", icon: "🤓", minPoints: 500 },
+    { name: "Literary Critic", icon: "⭐", minPoints: 750 },
+    { name: "Book Master", icon: "🏆", minPoints: 1000 },
+    { name: "Sage Reader", icon: "🧙", minPoints: 1500 },
+    { name: "Reading Legend", icon: "👑", minPoints: 2000 }
+  ];
+  
+  // Run when DOM is fully loaded
+  function initFeatures() {
+    updateUserStats();
+    setupEventListeners();
+    console.log("Book features initialized");
+  }
+  
+  function setupEventListeners() {
+    // Add event listeners as needed
+    // Set up the basic user interface features...
+    document.querySelectorAll(".read-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleReadStatus(slug, this);
+      });
+    });
+    
+    // More event listeners...
+  }
+  
+  function updateUserStats() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const points = userStats.points || 0;
+      
+      // Update points display
+      const pointsEl = document.getElementById("userPointsValue");
+      if (pointsEl) pointsEl.textContent = points;
+      
+      // Update books read count
+      const booksReadEl = document.getElementById("userBooksRead");
+      if (booksReadEl) booksReadEl.textContent = userStats.booksRead || 0;
+      
+      // Update user level
+      const currentLevel = getUserLevel(points);
+      
+      // Calculate progress to next level
+      let progressPercent = 0;
+      const levelIndex = readerLevels.findIndex(level => level.name === currentLevel.name);
+      if (levelIndex < readerLevels.length - 1) {
+        const nextLevel = readerLevels[levelIndex + 1];
+        const pointsForCurrentLevel = points - currentLevel.minPoints;
+        const pointsNeededForNextLevel = nextLevel.minPoints - currentLevel.minPoints;
+        progressPercent = Math.min(100, (pointsForCurrentLevel / pointsNeededForNextLevel) * 100);
+      } else {
+        // Already at max level
+        progressPercent = 100;
+      }
+      
+      // Update progress bar
+      const progressBar = document.getElementById("userProgressBar");
+      if (progressBar) {
+        progressBar.style.width = `${progressPercent}%`;
+      }
+      
+      // Update level display
+      const levelIcon = document.getElementById('currentLevelIcon');
+      const levelName = document.getElementById('currentLevelName');
+      
+      if (levelIcon) levelIcon.textContent = currentLevel.icon;
+      if (levelName) levelName.textContent = currentLevel.name;
+      
+      // Update badges
+      updateBadges(userStats);
+    } catch (e) {
+      console.error("Error updating user stats:", e);
+    }
+  }
+  
+  function getUserLevel(points) {
+    // Find the highest level that the user qualifies for
+    let currentLevel = readerLevels[0]; // Default to first level
+    
+    for (let i = readerLevels.length - 1; i >= 0; i--) {
+      if (points >= readerLevels[i].minPoints) {
+        currentLevel = readerLevels[i];
+        break;
+      }
+    }
+    
+    return currentLevel;
+  }
+  
+  function updateBadges(userStats) {
+    const badgesContainer = document.getElementById("userBadges");
+    if (!badgesContainer) return;
+    
+    badgesContainer.innerHTML = '';
+    
+    // Generate badges based on achievements
+    const badges = [];
+    
+    // Reader badges
+    if (userStats.booksRead >= 1) {
+      badges.push({ name: "First Book Read", icon: "📚" });
+    }
+    if (userStats.booksRead >= 5) {
+      badges.push({ name: "Bookworm", icon: "🐛" });
+    }
+    if (userStats.booksRead >= 10) {
+      badges.push({ name: "Avid Reader", icon: "📖" });
+    }
+    if (userStats.booksRead >= 25) {
+      badges.push({ name: "Book Master", icon: "🏆" });
+    }
+    
+    // Points badges
+    if (userStats.points >= 100) {
+      badges.push({ name: "Century Club", icon: "💯" });
+    }
+    if (userStats.points >= 500) {
+      badges.push({ name: "Scholar", icon: "🧠" });
+    }
+    if (userStats.points >= 1000) {
+      badges.push({ name: "Intellectual", icon: "🎓" });
+    }
+    
+    // Activity badges
+    if (userStats.booksBookmarked >= 5) {
+      badges.push({ name: "Curator", icon: "🔖" });
+    }
+    if (userStats.ratingsGiven >= 10) {
+      badges.push({ name: "Critic", icon: "⭐" });
+    }
+    
+    // Add badges to UI
+    badges.forEach(badge => {
+      const badgeElement = document.createElement("span");
+      badgeElement.className = "badge-tooltip";
+      badgeElement.setAttribute("data-tooltip", badge.name);
+      
+      const badgeIcon = document.createElement("span");
+      badgeIcon.className = "badge";
+      badgeIcon.innerHTML = badge.icon;
+      
+      badgeElement.appendChild(badgeIcon);
+      badgesContainer.appendChild(badgeElement);
+    });
+  }
+  
+  function toggleReadStatus(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      
+      if (!userStats.readBooks) userStats.readBooks = [];
+      if (!userStats.points) userStats.points = 0;
+      if (!userStats.booksRead) userStats.booksRead = 0;
+      
+      if (userStats.readBooks.includes(slug)) {
+        // Remove from read books
+        userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
+        button.textContent = "Mark Read";
+        button.classList.remove("read");
+        
+        // Reduce points (minimum 0)
+        userStats.points = Math.max(0, userStats.points - 10);
+        userStats.booksRead = Math.max(0, userStats.booksRead - 1);
+      } else {
+        // Add to read books
+        userStats.readBooks.push(slug);
+        button.textContent = "Read";
+        button.classList.add("read");
+        
+        // Award points
+        userStats.points += 10;
+        userStats.booksRead++;
+        
+        showNotification("🎉 +10 points for reading!");
+      }
+      
+      localStorage.setItem("userStats", JSON.stringify(userStats));
+      updateUserStats();
+    } catch (e) {
+      console.error("Error toggling read status:", e);
+    }
+  }
+  
+  function showNotification(message) {
+    const notification = document.createElement("div");
+    notification.style.position = "fixed";
+    notification.style.bottom = "20px";
+    notification.style.right = "20px";
+    notification.style.backgroundColor = "#4CAF50";
+    notification.style.color = "white";
+    notification.style.padding = "12px 24px";
+    notification.style.borderRadius = "4px";
+    notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+    notification.style.zIndex = "1000";
+    notification.style.transition = "opacity 0.5s";
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 500);
+    }, 3000);
+  }
+  
+  // Execute when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFeatures);
+  } else {
+    initFeatures();
+  }
+})();
