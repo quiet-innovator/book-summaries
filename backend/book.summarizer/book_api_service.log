@@ -64,3 +64,5 @@
 2025-04-07 14:29:06,061 - INFO -  * Restarting with stat
 2025-04-07 14:29:09,284 - WARNING -  * Debugger is active!
 2025-04-07 14:29:09,295 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 14:57:56,443 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 14:57:57,595 - INFO -  * Restarting with stat

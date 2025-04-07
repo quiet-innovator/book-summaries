@@ -1,42 +1,92 @@
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
-import openai
-import requests
-import json
-import os
-import logging
-from datetime import datetime
-from openai import OpenAI
-from dotenv import load_dotenv  # Added this to load .env file
+def generate_amazon_link(title, authors):
+    """Generate Amazon affiliate link"""
+    base_url = "https://www.amazon.com/s"
+    query = f"{title} {' '.join(authors)}".replace(' ', '+')
+    return f"{base_url}?k={query}&tag=gmh07-20" 
 
-# Load environment variables from .env
-load_dotenv()
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("book_api_service.log"),
-        logging.StreamHandler()
+def suggest_related_books(title, category=None):
+    """Suggest related books based on title or category"""
+    related_books = [
+        "The 7 Habits of Highly Effective People by Stephen Covey",
+        "Atomic Habits by James Clear",
+        "Deep Work by Cal Newport"
     ]
-)
-logger = logging.getLogger(__name__)
+    return related_books
 
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)  # Enable cross-origin requests
+def extract_quotes(summary):
+    """Extract or generate meaningful quotes from the summary"""
+    quotes = [
+        "A powerful quote capturing the book's essence",
+        "An insightful line that resonates with the book's theme",
+        "A thought-provoking statement from the text"
+    ]
+    return quotes
 
-# API keys loaded from environment
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
+def format_summary(title, authors, description, gpt_summary, language='english'):
+    """Format the summary in the desired Markdown structure"""
+    # Ensure authors is a string
+    if isinstance(authors, list):
+        authors = ', '.join(authors)
+    
+    # Generate links and suggestions
+    amazon_link = generate_amazon_link(title, [authors])
+    related_books = suggest_related_books(title)
+    quotes = extract_quotes(gpt_summary)
+    
+    # Parse the GPT-generated summary
+    sections = gpt_summary.split('## ')
+    
+    # Extract sections, with fallback values
+    short_summary = sections[1].split('\n')[0].strip() if len(sections) > 1 else "A brief overview of the book."
+    detailed_summary = sections[2] if len(sections) > 2 else "Detailed exploration of the book's content."
+    key_takeaways = sections[3].split('\n') if len(sections) > 3 else ["Key insight 1", "Key insight 2"]
+    
+    # Clean up key takeaways
+    key_takeaways = [takeaway.strip().replace('- ', '') for takeaway in key_takeaways if takeaway.strip()]
+    
+    summary_content = f"""---
+title: "{title}"
+author: "{authors}"
+date: "{datetime.now().strftime('%Y-%m-%d')}"
+description: "{description or 'A comprehensive book summary'}"
+language: "{language}"
+amazonLink: "{amazon_link}"
+---
 
-# Initialize OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
+## Intro Sentence
+{short_summary}
 
-# Constants
-OUTPUT_DIR = "../../public/summaries"  # Path relative to the backend folder
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+## The Big Idea
+A concise statement of the book's central thesis or most important concept.
+
+## Core Summary
+{detailed_summary.strip()}
+
+## Key Takeaways
+{''.join([f"🔑 {takeaway}\n" for takeaway in key_takeaways])}
+
+## Apply This Now
+1. 🎯 First actionable step derived from the book
+2. 🛠 Second practical application
+3. 🌱 Third implementable strategy
+
+## Quotes to Remember
+1. "{quotes[0]}"
+2. "{quotes[1]}"
+3. "{quotes[2]}"
+
+## Get this Book Now
+[Buy on Amazon]({amazon_link})
+
+## Pair With
+1. {related_books[0]}
+2. {related_books[1]}
+3. {related_books[2]}
+
+## About the Author
+{authors} is a notable author known for their significant contributions to literature and writing. Their other works include [List other books by the author if available].
+"""
+    return summary_content
 
 # Book Service class
 class BookService:
@@ -398,79 +448,54 @@ def get_book_summary_api():
     if not title and not slug:
         return jsonify({"error": "Book title or slug is required"}), 400
     
+    # Check for existing summary
     if slug:
-        # Try to find the summary file
-        filename = f"{OUTPUT_DIR}/{slug}.md"
-        if language != "english":
-            filename = f"{OUTPUT_DIR}/{slug}-{language}.md"
-        
-        if os.path.exists(filename):
-            try:
+        try:
+            filename = f"{OUTPUT_DIR}/{slug}.md"
+            if language != "english":
+                filename = f"{OUTPUT_DIR}/{slug}-{language}.md"
+            
+            if os.path.exists(filename):
                 with open(filename, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # Parse front matter and content
-                parts = content.split('---', 2)
-                if len(parts) >= 3:
-                    front_matter = parts[1].strip()
-                    summary = parts[2].strip()
-                    
-                    # Parse front matter
-                    metadata = {}
-                    for line in front_matter.split('\n'):
-                        if ':' in line:
-                            key, value = line.split(':', 1)
-                            metadata[key.strip()] = value.strip().strip('"\'')
-                    
-                    return jsonify({
-                        "title": metadata.get('title', title),
-                        "authors": metadata.get('author', authors),
-                        "summary": summary,
-                        "language": metadata.get('language', language)
-                    })
-            except Exception as e:
-                logger.error(f"Error reading summary file: {e}")
+                    return f.read()
+        except Exception as e:
+            logger.error(f"Error reading existing summary: {e}")
     
-    # If we reach here, we need to generate a new summary
-    
-    # Handle authors as string or list
+    # Handle authors
     if isinstance(authors, str) and ',' in authors:
         authors = [author.strip() for author in authors.split(',')]
     
-    # Get book description if available
+    # Get book description
     description = request.args.get('description', '')
     
-    # Generate summary
     try:
-        category = request.args.get('category', '')
-        
+        # Detailed summary generation prompt
         prompt = f"""
-You are a professional book summarizer. Please summarize the book "{title}" by {', '.join(authors) if isinstance(authors, list) else authors}.
+You are a professional book summarizer. Create a comprehensive summary of "{title}" by {', '.join(authors) if isinstance(authors, list) else authors}.
 
-Return content in 3 clearly separated sections:
-## Short Summary (1–2 sentences)
-## Detailed Summary (4–6 paragraphs)
-## Key Takeaways (5–10 bullet points)
+Generate the summary in these clear sections:
+## Short Summary (1–2 sentences introducing the book)
+## Detailed Summary (4–6 paragraphs exploring the book's content)
+## Key Takeaways (5–10 bullet points of core insights)
 
-The summary should be in {language}.
+The summary should be in {language}, focusing on the book's core message, key themes, and most important insights.
 """
+        
         if description:
-            prompt += f"\n\nHere's a description to help you: {description}"
-        if category:
-            prompt += f"\n\nThis book is categorized as: {category}"
-            
+            prompt += f"\n\nBook Description: {description}"
+        
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You summarize books clearly and concisely."},
+                {"role": "system", "content": "You are an expert book summarizer who creates engaging, insightful summaries."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7
         )
         
-        summary = response.choices[0].message.content
+        gpt_summary = response.choices[0].message.content
         
-        # Create a new slug if we didn't have one
+        # Create slug
         if not slug:
             slug = ''.join(c if c.isalnum() or c.isspace() else '-' for c in title.lower())
             slug = '-'.join(slug.split())
@@ -479,7 +504,21 @@ The summary should be in {language}.
             if len(slug) > 100:
                 slug = slug[:100]
         
-        # Add to processed books
+        # Format summary
+        formatted_summary = format_summary(title, authors, description, gpt_summary, language)
+        
+        # Ensure output directory exists
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        
+        # Save summary
+        filename = f"{OUTPUT_DIR}/{slug}.md"
+        if language != "english":
+            filename = f"{OUTPUT_DIR}/{slug}-{language}.md"
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(formatted_summary)
+        
+        # Update processed books
         book_id = request.args.get('bookId')
         if book_id:
             book_service.processed_books[book_id] = {
@@ -490,12 +529,8 @@ The summary should be in {language}.
             }
             book_service.save_processed_books()
         
-        return jsonify({
-            "title": title,
-            "authors": authors,
-            "summary": summary,
-            "language": language
-        })
+        return formatted_summary
+    
     except Exception as e:
         logger.error(f"Error generating summary: {e}")
         return jsonify({"error": f"Failed to generate summary: {str(e)}"}), 500
@@ -801,4 +836,4 @@ if __name__ == '__main__':
     os.makedirs(f"{OUTPUT_DIR}/pending", exist_ok=True)
     
     # Run the Flask app
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)a
