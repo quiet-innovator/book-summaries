@@ -1,12 +1,4 @@
 ---
-// Try different layout import paths based on your project structure
-import Layout from '../../layouts/Layout.astro';
-// If the above doesn't work, try:
-// import Layout from '../../../layouts/Layout.astro';
-// Or find where your Layout component is located
-
-import { getCollection } from 'astro:content';
-
 // Define reader levels
 const readerLevels = [
   { name: "Novice Reader", icon: "📚", minPoints: 0 },
@@ -21,10 +13,25 @@ const readerLevels = [
   { name: "Reading Legend", icon: "👑", minPoints: 2000 }
 ];
 
-// Simple version for server-side rendering instead
-export const prerender = false;
+// Mock book data for static generation
+const mockBooks = [
+  { slug: "atomic-habits", title: "Atomic Habits", description: "An Easy & Proven Way to Build Good Habits & Break Bad Ones" },
+  { slug: "deep-work", title: "Deep Work", description: "Rules for Focused Success in a Distracted World" },
+  { slug: "thinking-fast-and-slow", title: "Thinking, Fast and Slow", description: "A groundbreaking exploration of how we think" },
+  { slug: "sapiens", title: "Sapiens", description: "A Brief History of Humankind" },
+  { slug: "the-psychology-of-money", title: "The Psychology of Money", description: "Timeless lessons on wealth, greed, and happiness" }
+];
 
-// Get the slug from the URL params
+// Required for static generation
+export function getStaticPaths() {
+  return mockBooks.map(book => ({
+    params: { slug: book.slug },
+    props: { book }
+  }));
+}
+
+// Get the book from props
+const { book } = Astro.props;
 const { slug } = Astro.params;
 
 // Function to get user level based on points
@@ -41,12 +48,6 @@ function getUserLevel(points) {
   
   return currentLevel;
 }
-
-// Create a dummy book for testing purposes
-const book = {
-  title: `Book: ${slug}`,
-  description: "This is a placeholder book description"
-};
 ---
 
 <html lang="en">
