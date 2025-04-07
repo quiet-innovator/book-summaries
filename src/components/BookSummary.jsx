@@ -1,5 +1,5 @@
 // src/components/BookSummary.jsx
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function BookSummary({ bookData }) {
   const [currentLanguage, setCurrentLanguage] = useState(bookData.language || 'english');
@@ -11,41 +11,40 @@ export default function BookSummary({ bookData }) {
   const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
 
   // Fetch available languages for this book
-// In BookSummary.jsx, modify the useEffect that fetches available languages
-useEffect(() => {
-  const fetchAvailableLanguages = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/languages`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableLanguages(data.languages);
-      } else {
-        // Fallback to standard languages
+  useEffect(() => {
+    const fetchAvailableLanguages = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/languages`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableLanguages(data.languages);
+        } else {
+          // Fallback to standard languages
+          setAvailableLanguages([
+            { code: 'english', name: 'English' },
+            { code: 'spanish', name: 'Spanish' },
+            { code: 'french', name: 'French' },
+            { code: 'hindi', name: 'Hindi' },
+            { code: 'german', name: 'German' },
+            { code: 'italian', name: 'Italian' },
+            { code: 'portuguese', name: 'Portuguese' },
+            { code: 'russian', name: 'Russian' }
+          ]);
+        }
+      } catch (err) {
+        console.error('Error fetching available languages:', err);
         setAvailableLanguages([
           { code: 'english', name: 'English' },
           { code: 'spanish', name: 'Spanish' },
           { code: 'french', name: 'French' },
-          { code: 'hindi', name: 'Hindi' },
-          { code: 'german', name: 'German' },
-          { code: 'italian', name: 'Italian' },
-          { code: 'portuguese', name: 'Portuguese' },
-          { code: 'russian', name: 'Russian' }
+          { code: 'hindi', name: 'Hindi' }
         ]);
       }
-    } catch (err) {
-      console.error('Error fetching available languages:', err);
-      setAvailableLanguages([
-        { code: 'english', name: 'English' },
-        { code: 'spanish', name: 'Spanish' },
-        { code: 'french', name: 'French' },
-        { code: 'hindi', name: 'Hindi' }
-      ]);
-    }
-  };
+    };
 
-  fetchAvailableLanguages();
-}, []);
+    fetchAvailableLanguages();
+  }, []);
 
   // Handle language change
   const handleLanguageChange = async (e) => {
