@@ -1,67 +1,3298 @@
 ---
-import BaseHead from "../components/BaseHead.astro";
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../components/FormattedDate.astro';
 
-const siteTitle = "MinuteReads";
-const siteDescription = "Discover powerful book summaries in minutes. Curated insights from top nonfiction and fiction books — fast, free, and beautiful.";
+let posts = await getCollection('books');
+
+const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+
+async function fetchViews(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/views?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    return data.length > 0 ? data[0].views : 0;
+  } catch (e) {
+    console.error("Error fetching views for", slug, e);
+    return 0;
+  }
+}
+
+async function fetchRatings(slug) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ratings?slug=eq.${slug}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const data = await res.json();
+    if (data.length > 0) {
+      return {
+        average: parseFloat((data[0].total_rating / data[0].rating_count).toFixed(1)),
+        count: data[0].rating_count
+      };
+    }
+    return { average: 0, count: 0 };
+  } catch (e) {
+    console.error("Error fetching ratings for", slug, e);
+    return { average: 0, count: 0 };
+  }
+}
+
+// No need to fetch leaderboard data during build, we'll handle it on client-side
+
+posts = await Promise.all(posts.map(async (post) => {
+  const views = await fetchViews(post.id);
+  const ratings = await fetchRatings(post.id);
+  return { ...post, data: { ...post.data, views, ratings } };
+}));
+
+const postSlugs = posts.map(post => `/books/${post.id}/`);
+posts = posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const authors = [...new Set(posts.map(p => p.data.author).filter(Boolean))];
+const allTags = [...new Set(posts.flatMap(p => p.data.tags || []))];
+const allCategories = [...new Set(posts.map(p => p.data.category).filter(Boolean))];
+const allSubcategories = [...new Set(posts.flatMap(p => p.data.subcategories || []).filter(Boolean))];
+const allLanguages = [...new Set(posts.map(p => p.data.language || 'English').filter(Boolean))];
+
+// Group posts by fiction/non-fiction
+const fictionPosts = posts.filter(p => p.data.isFiction === true);
+const nonFictionPosts = posts.filter(p => p.data.isFiction === false || p.data.isFiction === undefined);
+
+// Group categories by fiction/non-fiction
+const fictionCategories = [...new Set(fictionPosts.map(p => p.data.category).filter(Boolean))];
+const nonFictionCategories = [...new Set(nonFictionPosts.map(p => p.data.category).filter(Boolean))];
+
+// Get subcategories by category
+const subcategoriesByCategory = {};
+allCategories.forEach(category => {
+  subcategoriesByCategory[category] = [...new Set(
+    posts.filter(p => p.data.category === category)
+        .flatMap(p => p.data.subcategories || [])
+        .filter(Boolean)
+  )];
+});
+
+// Get most popular books for meta description enhancement
+const popularBooks = [...posts].sort((a, b) => (b.data.views || 0) - (a.data.views || 0)).slice(0, 3);
+const popularTitles = popularBooks.map(book => book.data.title).join(", ");
+const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular books including ${popularTitles} and more.`;
 ---
 
 <html lang="en">
   <head>
-    <BaseHead title={siteTitle} description={siteDescription} />
-    <style>
-      .hero {
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        padding: 2rem;
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9N7PJ70RGJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-9N7PJ70RGJ');
+    </script>
+    
+    <BaseHead title={`Book Summaries | ${SITE_TITLE}`} description={enhancedDescription} />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="keywords" content={`book summaries, book reviews, ${allTags.join(', ')}, literature, reading guides`} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={new URL('/books', Astro.site).toString()} />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL('/books', Astro.site).toString()} />
+    <meta property="og:title" content={`Book Summaries | ${SITE_TITLE}`} />
+    <meta property="og:description" content={enhancedDescription} />
+    <meta property="og:image" content={new URL('/og-books-image.jpg', Astro.site).toString()} />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={new URL('/books', Astro.site).toString()} />
+    <meta property="twitter:title" content={`Book Summaries | ${SITE_TITLE}`} />
+    <meta property="twitter:description" content={enhancedDescription} />
+    <meta property="twitter:image" content={new URL('/og-books-image.jpg', Astro.site).toString()} />
+    
+    <!-- Schema.org structured data for Collection Page -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "headline": "Book Summaries",
+        "description": "${enhancedDescription}",
+        "url": "${new URL('/books', Astro.site).toString()}",
+        "mainEntity": {
+          "@type": "ItemList",
+          "itemListElement": [
+            ${posts.slice(0, 10).map((post, index) => `{
+              "@type": "ListItem",
+              "position": ${index + 1},
+              "url": "${new URL(`/books/${post.id}/`, Astro.site).toString()}",
+              "name": "${post.data.title}"
+            }`).join(',')}
+          ]
+        }
       }
-
-      .hero h1 {
-        font-size: 3rem;
+    </script>
+    
+    <style>
+      main {
+        width: 960px;
+        max-width: 100%;
+        padding: 0 1rem;
+        margin: 0 auto;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
         margin-bottom: 1rem;
       }
-
-      .hero p {
-        font-size: 1.25rem;
-        max-width: 600px;
-        margin-bottom: 2rem;
-        color: black;
+      .search-bar {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        outline: none;
+        min-width: 300px;
       }
-
-      .cta-button {
+      .dropdown,
+      .random-btn,
+      .clear-btn,
+      .top-rated-btn,
+      .bookmarks-btn,
+      .leaderboard-btn,
+      .filter-tags button,
+      .tag {
+        border: none;
+        border-radius: 16px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      .dropdown {
+        background-color: #f0f0f0;
+      }
+      .random-btn,
+      .clear-btn,
+      .top-rated-btn,
+      .bookmarks-btn,
+      .leaderboard-btn {
         background-color: #0070f3;
         color: white;
-        padding: 0.75rem 1.5rem;
-        font-size: 1.1rem;
+      }
+      .random-btn:hover,
+      .clear-btn:hover,
+      .top-rated-btn:hover,
+      .bookmarks-btn:hover,
+      .leaderboard-btn:hover {
+        opacity: 0.9;
+      }
+      .tag.active-tag,
+      .filter-tags button.active-tag {
+        background-color: #0070f3;
+        color: white;
+      }
+      .tag {
+        background-color: #eee;
+        margin-right: 0.4rem;
+        margin-bottom: 0.4rem;
+        display: inline-block;
+      }
+      .filter-section {
+        margin-bottom: 1.5rem;
+      }
+      .filter-tags {
+        margin-bottom: 1rem;
+      }
+      
+      /* Enhanced filter UI */
+      .filter-container {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+      .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .filter-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .filter-step {
+        display: none;
+      }
+      .filter-step.active {
+        display: block;
+      }
+      .filter-option {
+        display: inline-block;
+        background-color: #eee;
+        border-radius: 16px;
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+      }
+      .filter-option.selected {
+        background-color: #0070f3;
+        color: white;
+      }
+      .filter-nav-item {
+        padding: 0.5rem 1rem;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .filter-nav-item.active {
+        background-color: #0070f3;
+        color: white;
+      }
+      
+      /* Gamification elements */
+      .user-points {
+        display: flex;
+        align-items: center;
+        background-color: #f0fdff;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+      .user-badges {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1rem;
+      }
+      .badge {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        color: white;
+        background-color: #ffc107;
+      }
+      .badge-tooltip {
+        position: relative;
+      }
+      .badge-tooltip:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 100;
+      }
+      .progress-bar-container {
+        flex: 1;
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 0 1rem;
+      }
+      .progress-bar {
+        height: 100%;
+        background-color: #28a745;
+      }
+      
+      /* Leaderboard */
+      .leaderboard-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .leaderboard-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .leaderboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .leaderboard-table th,
+      .leaderboard-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      .leaderboard-table tr:nth-child(1) td {
+        background-color: #ffd700;
+        font-weight: bold;
+      }
+      .leaderboard-table tr:nth-child(2) td {
+        background-color: #c0c0c0;
+      }
+      .leaderboard-table tr:nth-child(3) td {
+        background-color: #cd7f32;
+      }
+      
+      ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      ul li {
+        width: calc(50% - 1rem);
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+        position: relative;
+      }
+      .book-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+      .views-count {
+        font-size: 0.9rem;
+        color: #666;
+      }
+      ul li h3 {
+        margin: 0.25rem 0;
+        font-weight: 700;
+        color: black;
+      }
+      ul li .author {
+        margin: 0;
+        font-style: italic;
+        color: #0070f3;  /* Changed author color to blue */
+      }
+      ul li .date {
+        margin-bottom: 0.75rem;
+        color: #333;
+        font-size: 0.95rem;
+      }
+      .bookmark-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: none;
         border: none;
-        border-radius: 12px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .bookmark-icon {
+        width: 24px;
+        height: 24px;
+        stroke: #ccc;
+        fill: none;
+        stroke-width: 2px;
+        transition: all 0.2s ease;
+      }
+      .bookmark-btn.active .bookmark-icon {
+        fill: #f0c14b;
+        stroke: #f0c14b;
+      }
+      .bookmark-btn:hover .bookmark-icon {
+        stroke: #999;
+      }
+      .bookmark-btn.active:hover .bookmark-icon {
+        fill: #e0b13b;
+        stroke: #e0b13b;
+      }
+      .rating-display {
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.5rem;
+      }
+      .stars {
+        color: #f0c14b;
+        margin-right: 0.3rem;
+        cursor: pointer;
+      }
+      .star {
+        cursor: pointer;
+        display: inline-block;
+        transition: transform 0.1s;
+      }
+      .star:hover {
+        transform: scale(1.2);
+      }
+      .rating-count {
+        font-size: 0.8rem;
+        opacity: 0.7;
+      }
+      .bookmarks-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .bookmarks-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .bookmarks-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      .export-btn {
+        background-color: #34a853;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+      }
+      .empty-bookmarks {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+      .read-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin-left: 0.5rem;
+      }
+      .read-btn.read {
+        background-color: #6c757d;
+      }
+      .category-label,
+      .language-label {
+        display: inline-block;
+        font-size: 0.8rem;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        margin-right: 0.5rem;
+      }
+      body.dark ul li h3 {
+        color: white;
+      }
+      body.dark ul li .author {
+        color: #3291ff;  /* Blue color for dark mode */
+      }
+      body.dark ul li .date {
+        color: white;
+      }
+      body.dark .views-count {
+        color: #aaa;
+      }
+      body.dark .bookmarks-content,
+      body.dark .leaderboard-content {
+        background-color: #333;
+        color: white;
+      }
+      body.dark .bookmark-icon {
+        stroke: #aaa;
+      }
+      body.dark .filter-container {
+        background-color: #2d2d2d;
+      }
+      body.dark .filter-option {
+        background-color: #444;
+        color: #ddd;
+      }
+      body.dark .user-points {
+        background-color: #2d3748;
+        color: white;
+      }
+      body.dark .progress-bar-container {
+        background-color: #4a5568;
+      }
+      body.dark .category-label,
+      body.dark .language-label {
+        background-color: #4a5568;
+        color: #e2e8f0;
+      }
+      a {
         text-decoration: none;
-        transition: background-color 0.2s ease-in-out;
       }
-
-      .cta-button:hover {
-        background-color: #0059c9;
+      .page-heading {
+        margin-bottom: 1.5rem;
       }
-
+      .no-results {
+        text-align: center;
+        padding: 2rem;
+        font-size: 1.2rem;
+        color: #666;
+        display: none;
+      }
+      
       @media (max-width: 768px) {
-        .hero h1 {
-          font-size: 2rem;
+        ul li {
+          width: 100%;
         }
-
-        .hero p {
-          font-size: 1rem;
+        .filter-container {
+          padding: 0.75rem;
         }
       }
+
+      /* Level display styling */
+
+.user-points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  background-color: #f0fdff;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  gap: 1rem;
+}
+
+.user-level {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 1rem;
+  min-width: 110px;
+}
+
+.level-icon {
+  font-size: 1.5rem;
+  background-color: #0070f3;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+}
+
+.level-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.level-info span {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.user-progress {
+  flex: 1;
+  min-width: 200px;
+}
+
+.leaderboard-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.level-indicator {
+  font-size: 1.2rem;
+}
+
+.level-name {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .user-points {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .user-level, .user-progress {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-bar-container {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+}
     </style>
   </head>
   <body>
-    <div class="hero">
-      <h1>Read More, Faster</h1>
-      <p>Get the core insights from top books in minutes — empower your mind one summary at a time.</p>
-      <a href="/books" class="cta-button">📚 Read Summaries</a>
+    <Header />
+    <main>
+      <section>
+        <div class="page-heading">
+          <br>
+          <h1>Book Summaries</h1>
+        </div>
+
+     <!-- User Points and Badges Section -->
+<!-- Updated User Points and Badges Section with Level -->
+<div id="userStats" class="user-points">
+  <div class="user-level">
+    <div id="currentLevelIcon" class="level-icon">📚</div>
+    <div class="level-info">
+      <span id="currentLevelName">Novice Reader</span>
     </div>
-  </body>
-</html>
+  </div>
+  <div class="user-progress">
+    <strong>My Progress:</strong> <span id="userPointsValue">0</span> points | 
+    <span id="userBooksRead">0</span> books
+  </div>
+  <div class="progress-bar-container">
+    <div id="userProgressBar" class="progress-bar" style="width: 0%"></div>
+  </div>
+  <div id="userBadges" class="user-badges">
+    <!-- Badges will be added dynamically -->
+  </div>
+</div>
+        <div class="controls">
+          <input id="search" class="search-bar" placeholder="Search book summaries..." aria-label="Search books" />
+          <select id="sortOptions" class="dropdown" aria-label="Sort options">
+            <option value="newest">Sort by Newest</option>
+            <option value="oldest">Sort by Oldest</option>
+            <option value="popular">Sort by Popularity</option>
+            <option value="rated">Sort by Rating</option>
+          </select>
+          <button class="random-btn" id="randomBook" aria-label="Random Book">🎲 Random</button>
+          <button class="top-rated-btn" id="topRatedBtn" aria-label="Top Rated">⭐ Top Rated</button>
+          <button class="bookmarks-btn" id="bookmarksBtn" aria-label="Bookmarks">Bookmarks</button>
+          <button class="leaderboard-btn" id="leaderboardBtn" aria-label="Leaderboard">🏆 Leaderboard</button>
+          <button class="clear-btn" id="clearFiltersBtn" aria-label="Clear Filters">Clear Filter</button>
+        </div>
+
+        <!-- Enhanced Filtering UI -->
+        <div class="filter-container">
+          <div class="filter-header">
+            <h3>Browse Books</h3>
+            <div class="filter-nav">
+              <span id="navLanguage" class="filter-nav-item active">Language</span> &gt;
+              <span id="navType" class="filter-nav-item">Type</span> &gt;
+              <span id="navCategory" class="filter-nav-item">Category</span> &gt;
+              <span id="navSubcategory" class="filter-nav-item">Subcategory</span>
+            </div>
+          </div>
+          
+          <!-- Step 1: Language Selection -->
+          <div id="stepLanguage" class="filter-step active">
+            <h4>Select Language</h4>
+            <div class="filter-options">
+              {allLanguages.map(language => (
+                <span class="filter-option" data-language={language}>{language}</span>
+              ))}
+            </div>
+          </div>
+          
+          <!-- Step 2: Fiction/Non-Fiction Selection -->
+          <div id="stepType" class="filter-step">
+            <h4>Select Book Type</h4>
+            <div class="filter-options">
+              <span class="filter-option" data-type="fiction">Fiction</span>
+              <span class="filter-option" data-type="non-fiction">Non-Fiction</span>
+            </div>
+          </div>
+          
+          <!-- Step 3: Category Selection -->
+          <div id="stepCategory" class="filter-step">
+            <h4>Select Category</h4>
+            <div id="categoryOptions" class="filter-options">
+              <!-- Categories will be added dynamically based on fiction/non-fiction selection -->
+            </div>
+          </div>
+          
+          <!-- Step 4: Subcategory Selection -->
+          <div id="stepSubcategory" class="filter-step">
+            <h4>Select Subcategory (Optional)</h4>
+            <div id="subcategoryOptions" class="filter-options">
+              <!-- Subcategories will be added dynamically based on category selection -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Legacy Filter Options (Alternative approach) -->
+        <div class="filter-section">
+          <div class="filter-tags">
+            <strong>Filter by author:</strong>
+            {authors.map(author => (
+              <button class="author-filter" data-author={author} aria-label={`Filter by author: ${author}`}>{author}</button>
+            ))}
+          </div>
+          
+          <div class="filter-tags">
+            <strong>Popular tags:</strong>
+            {allTags.slice(0, 8).map(tag => (
+              <button class="category-filter tag" data-tag={tag} aria-label={`Filter by tag: ${tag}`}>{tag}</button>
+            ))}
+          </div>
+        </div>
+
+        <div id="noResults" class="no-results">
+          No matching books found. Try adjusting your search or filters.
+        </div>
+
+        <ul id="postList">
+          {posts.map(post => (
+            <li class="post-item"
+                data-title={post.data.title.toLowerCase()}
+                data-description={post.data.description?.toLowerCase() || ''}
+                data-tags={post.data.tags?.join(',').toLowerCase() || ''}
+                data-category={post.data.category?.toLowerCase() || ''}
+                data-subcategories={post.data.subcategories?.join(',').toLowerCase() || ''}
+                data-language={post.data.language?.toLowerCase() || 'english'}
+                data-fiction={post.data.isFiction ? 'fiction' : 'non-fiction'}
+                data-views={post.data.views || 0}
+                data-rating={post.data.ratings?.average || 0}
+                data-rating-count={post.data.ratings?.count || 0}
+                data-date={post.data.pubDate.toISOString()}
+                data-author={post.data.author}
+                data-slug={post.id}>
+              <button class="bookmark-btn" data-slug={post.id} aria-label="Bookmark this book" title="Save for later">
+                <svg class="bookmark-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <path d="M5 3h14a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2z"></path>
+                </svg>
+              </button>
+              <a href={`/books/${post.id}/`}>
+                <h3>{post.data.title}</h3>
+                {post.data.author && <p class="author">By {post.data.author}</p>}
+              </a>
+              <div class="book-meta">
+                <div class="date">
+                  <FormattedDate date={post.data.pubDate} />
+                  {post.data.language && post.data.language !== 'English' && (
+                    <span class="language-label">{post.data.language}</span>
+                  )}
+                  {post.data.category && (
+                    <span class="category-label">{post.data.isFiction ? 'Fiction' : 'Non-Fiction'}: {post.data.category}</span>
+                  )}
+                </div>
+                <div class="views-count">
+                  <span>👁️ {post.data.views || 0} views</span>
+                  <button class="read-btn" data-slug={post.id}>Mark Read</button>
+                </div>
+              </div>
+              <div class="rating-display" data-slug={post.id}>
+                <span class="stars">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span class="star" data-rating={i + 1} data-slug={post.id}>
+                      {i < Math.round(post.data.ratings?.average || 0) ? '★' : '☆'}
+                    </span>
+                  ))}
+                </span>
+                <span>{post.data.ratings?.average || 0}</span>
+                <span class="rating-count">({post.data.ratings?.count || 0} ratings)</span>
+              </div>
+              {post.data.tags && (
+                <div>
+                  {post.data.tags.map(tag => (
+                    <button class="tag" data-tag={tag} aria-label={`Filter by tag: ${tag}`}>{tag}</button>
+                  ))}
+                </div>
+              )}
+              
+              <script type="application/ld+json" set:html={JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Book",
+                "name": post.data.title,
+                "author": post.data.author ? {
+                  "@type": "Person",
+                  "name": post.data.author
+                } : undefined,
+                "url": new URL(`/books/${post.id}/`, Astro.site).toString(),
+                "datePublished": post.data.pubDate.toISOString(),
+                "description": post.data.description || "",
+                "genre": post.data.tags || [],
+                "keywords": post.data.tags?.join(', ') || "",
+                "publisher": SITE_TITLE,
+                "aggregateRating": post.data.ratings && post.data.ratings.count > 0 ? {
+                  "@type": "AggregateRating",
+                  "ratingValue": post.data.ratings.average,
+                  "ratingCount": post.data.ratings.count,
+                  "bestRating": "5",
+                  "worstRating": "1"
+                } : undefined,
+                "workExample": {
+                  "@type": "Book",
+                  "bookFormat": "http://schema.org/EBook"
+                },
+                "review": {
+                  "@type": "Review",
+                  "reviewBody": post.data.description || "A summary of " + post.data.title,
+                 "author": {
+                    "@type": "Organization",
+                    "name": SITE_TITLE
+                  }
+                }
+              })}></script>
+            </li>
+          ))}
+        </ul>
+
+        <!-- Bookmarks Modal -->
+        <div id="bookmarksModal" class="bookmarks-modal">
+          <div class="bookmarks-content">
+            <div class="bookmarks-header">
+              <h2>Your Bookmarked Summaries</h2>
+              <div>
+                <button id="exportBookmarks" class="export-btn">Export List</button>
+                <button class="close-modal" id="closeBookmarks">×</button>
+              </div>
+            </div>
+            <div id="bookmarksList">
+              <!-- Bookmarks will be added here by JavaScript -->
+              <div class="empty-bookmarks">You haven't bookmarked any book summaries yet.</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Leaderboard Modal -->
+        <div id="leaderboardModal" class="leaderboard-modal">
+          <div class="leaderboard-content">
+            <div class="leaderboard-header">
+              <h2>Top Readers Leaderboard</h2>
+              <button class="close-modal" id="closeLeaderboard">×</button>
+            </div>
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Reader</th>
+                  <th>Books Read</th>
+                  <th>Points</th>
+                  <th>Badges</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody">
+                <!-- Leaderboard data will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Important: Load the script directly in the page to ensure it executes -->
+        <script>
+          // Global variables to store data
+          const postSlugs = JSON.parse(`${JSON.stringify(postSlugs)}`);
+          const posts = JSON.parse(`${JSON.stringify(posts.map(post => ({ 
+            id: post.id, 
+            title: post.data.title, 
+            author: post.data.author, 
+            date: post.data.pubDate.toISOString(),
+            rating: post.data.ratings?.average || 0,
+            category: post.data.category,
+            isFiction: post.data.isFiction,
+            language: post.data.language || 'English'
+          })))}`);
+          const fictionCategories = JSON.parse(`${JSON.stringify(fictionCategories)}`);
+          const nonFictionCategories = JSON.parse(`${JSON.stringify(nonFictionCategories)}`);
+          const subcategoriesByCategory = JSON.parse(`${JSON.stringify(subcategoriesByCategory)}`);
+          const SUPABASE_URL = "${SUPABASE_URL}";
+          const SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}";
+          
+          // Make sure all functions are defined directly, not using define:vars
+          document.addEventListener("DOMContentLoaded", () => {
+            console.log("DOM fully loaded - initializing features");
+
+            // Initialize user stats and gamification
+            initializeUserStats();
+            
+            // Initialize enhanced filtering UI
+            initializeFilterUI();
+            
+            // Initialize bookmarks from localStorage
+            initializeBookmarks();
+            
+            // Set up event listeners for search
+            document.getElementById("search").addEventListener("input", filterPosts);
+            
+            // Set up random book button
+            const randomButton = document.getElementById("randomBook");
+            if (randomButton && postSlugs.length > 0) {
+              randomButton.addEventListener("click", () => {
+                const randomUrl = postSlugs[Math.floor(Math.random() * postSlugs.length)];
+                if (randomUrl) window.location.href = randomUrl;
+              });
+            }
+            
+            // Add event listeners for top rated button
+            const topRatedBtn = document.getElementById("topRatedBtn");
+            if (topRatedBtn) {
+              topRatedBtn.addEventListener("click", () => {
+                document.getElementById("sortOptions").value = "rated";
+                sortPosts();
+              });
+            }
+            
+            // Add event listeners for tag buttons
+            document.querySelectorAll(".tag").forEach(tag => {
+              tag.addEventListener("click", (e) => {
+                e.preventDefault();
+                const tagValue = tag.getAttribute("data-tag");
+                filterByTag(tagValue);
+              });
+            });
+            
+            // Add event listeners for category filter buttons
+            document.querySelectorAll(".category-filter").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const tagValue = btn.getAttribute("data-tag");
+                filterByTag(tagValue);
+              });
+            });
+            
+            // Add event listeners for author filter buttons
+            document.querySelectorAll(".author-filter").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const authorValue = btn.getAttribute("data-author");
+                filterByAuthor(authorValue);
+              });
+            });
+            
+            // Add event listener for clear filters button
+            const clearButton = document.getElementById("clearFiltersBtn");
+            if (clearButton) {
+              clearButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                clearFilters();
+              });
+            }
+            
+            // Add event listener for sort dropdown
+            const sortDropdown = document.getElementById("sortOptions");
+            if (sortDropdown) {
+              sortDropdown.addEventListener("change", sortPosts);
+            }
+            
+            // Bookmark functionality
+            document.querySelectorAll(".bookmark-btn").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const slug = btn.getAttribute("data-slug");
+                toggleBookmark(slug, btn);
+              });
+            });
+            
+            // "Mark as Read" functionality
+            document.querySelectorAll(".read-btn").forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const slug = btn.getAttribute("data-slug");
+                toggleReadStatus(slug, btn);
+              });
+            });
+            
+            // Rating stars functionality
+            document.querySelectorAll(".star").forEach(star => {
+              star.addEventListener("click", (e) => {
+                e.preventDefault();
+                const rating = parseInt(star.getAttribute("data-rating"));
+                const slug = star.getAttribute("data-slug");
+                submitRating(slug, rating);
+              });
+            });
+            
+            // Bookmarks modal
+            const bookmarksBtn = document.getElementById("bookmarksBtn");
+            const bookmarksModal = document.getElementById("bookmarksModal");
+            const closeBookmarks = document.getElementById("closeBookmarks");
+            const exportBookmarks = document.getElementById("exportBookmarks");
+            
+            if (bookmarksBtn && bookmarksModal) {
+              bookmarksBtn.addEventListener("click", () => {
+                renderBookmarksList();
+                bookmarksModal.style.display = "flex";
+              });
+            }
+            
+            if (closeBookmarks && bookmarksModal) {
+              closeBookmarks.addEventListener("click", () => {
+                bookmarksModal.style.display = "none";
+              });
+            }
+            
+            // Close modal when clicking outside
+            if (bookmarksModal) {
+              bookmarksModal.addEventListener("click", (e) => {
+                if (e.target === bookmarksModal) {
+                  bookmarksModal.style.display = "none";
+                }
+              });
+            }
+            
+            if (exportBookmarks) {
+              exportBookmarks.addEventListener("click", exportBookmarksList);
+            }
+            
+            // Leaderboard modal
+            const leaderboardBtn = document.getElementById("leaderboardBtn");
+            const leaderboardModal = document.getElementById("leaderboardModal");
+            const closeLeaderboard = document.getElementById("closeLeaderboard");
+            
+            if (leaderboardBtn && leaderboardModal) {
+              leaderboardBtn.addEventListener("click", () => {
+                populateLeaderboard();
+                leaderboardModal.style.display = "flex";
+              });
+            }
+            
+            if (closeLeaderboard && leaderboardModal) {
+              closeLeaderboard.addEventListener("click", () => {
+                leaderboardModal.style.display = "none";
+              });
+            }
+            
+            // Close modal when clicking outside
+            if (leaderboardModal) {
+              leaderboardModal.addEventListener("click", (e) => {
+                if (e.target === leaderboardModal) {
+                  leaderboardModal.style.display = "none";
+                }
+              });
+            }
+
+            console.log("Event listeners set up successfully");
+          });
+          
+          // Leaderboard functionality
+          async function fetchLeaderboard() {
+            try {
+              const res = await fetch(`${SUPABASE_URL}/rest/v1/user_points?order=points.desc&limit=10`, {
+                headers: {
+                  apikey: SUPABASE_ANON_KEY,
+                  Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+                }
+              });
+              const data = await res.json();
+              return Array.isArray(data) ? data : [];
+            } catch (e) {
+              console.error("Error fetching leaderboard", e);
+              return [];
+            }
+          }
+          
+          async function populateLeaderboard() {
+            const leaderboardBody = document.getElementById("leaderboardBody");
+            if (!leaderboardBody) return;
+            
+            try {
+              // Start with loading indicator
+              leaderboardBody.innerHTML = `
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 1rem;">
+                    Loading leaderboard data...
+                  </td>
+                </tr>
+              `;
+              
+              // Try to fetch real data, or use mock data if fetch fails
+              let data = [];
+              try {
+                data = await fetchLeaderboard();
+              } catch (error) {
+                console.error("Error fetching leaderboard data:", error);
+              }
+              
+              // If we got data, use it, otherwise use mock data
+              if (data && data.length > 0) {
+                // Clear previous content
+                leaderboardBody.innerHTML = "";
+                
+                // Add each user to the leaderboard
+                data.forEach((user, index) => {
+                  const badges = user.badges || [];
+                  const badgesHtml = Array.isArray(badges) ? badges.map(badge => 
+                    `<span class="badge-tooltip" data-tooltip="${badge.name || ''}">
+                      <span class="badge">${badge.icon || '🏅'}</span>
+                    </span>`
+                  ).join('') : '';
+                  
+                  const row = document.createElement("tr");
+                  row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${user.username || 'Anonymous Reader'}</td>
+                    <td>${user.books_read || 0}</td>
+                    <td>${user.points || 0}</td>
+                    <td>${badgesHtml || ''}</td>
+                  `;
+                  
+                  leaderboardBody.appendChild(row);
+                });
+              } else {
+                // If no data, add some mock data
+                addMockLeaderboardData();
+              }
+            } catch (error) {
+              console.error("Error populating leaderboard:", error);
+              // If error, add mock data
+              addMockLeaderboardData();
+            }
+          }
+          
+          function addMockLeaderboardData() {
+            const leaderboardBody = document.getElementById("leaderboardBody");
+            if (!leaderboardBody) return;
+            
+            leaderboardBody.innerHTML = ""; // Clear loading indicator
+            
+            const mockData = [
+              { username: "BookMaster", books_read: 42, points: 1250, badges: [{ name: "Intellectual", icon: "🎓" }, { name: "Book Master", icon: "🏆" }] },
+              { username: "LiteraryExplorer", books_read: 36, points: 1050, badges: [{ name: "Scholar", icon: "🧠" }, { name: "Avid Reader", icon: "📖" }] },
+              { username: "Bibliophile", books_read: 28, points: 875, badges: [{ name: "Century Club", icon: "💯" }, { name: "Curator", icon: "🔖" }] },
+              { username: "PageTurner", books_read: 23, points: 725, badges: [{ name: "Critic", icon: "⭐" }] },
+              { username: "Bookworm", books_read: 19, points: 600, badges: [{ name: "Bookworm", icon: "🐛" }] },
+              { username: "KnowledgeSeeker", books_read: 15, points: 500, badges: [{ name: "First Book Read", icon: "📚" }] },
+              { username: "WordSmith", books_read: 12, points: 400 },
+              { username: "LitLover", books_read: 10, points: 300 },
+              { username: "ReadingRookie", books_read: 7, points: 200 },
+              { username: "NovelNewbie", books_read: 4, points: 100 }
+            ];
+            
+            mockData.forEach((user, index) => {
+              const badges = user.badges || [];
+              const badgesHtml = badges.map(badge => 
+                `<span class="badge-tooltip" data-tooltip="${badge.name}">
+                  <span class="badge">${badge.icon}</span>
+                </span>`
+              ).join('');
+              
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${user.username}</td>
+                <td>${user.books_read}</td>
+                <td>${user.points}</td>
+                <td>${badgesHtml}</td>
+              `;
+              
+              leaderboardBody.appendChild(row);
+            });
+          }
+          
+          // Initialize the enhanced filter UI
+          function initializeFilterUI() {
+            console.log("Initializing filter UI");
+            
+            // Navigation between steps
+            document.getElementById("navLanguage")?.addEventListener("click", () => showFilterStep("Language"));
+            document.getElementById("navType")?.addEventListener("click", () => showFilterStep("Type"));
+            document.getElementById("navCategory")?.addEventListener("click", () => showFilterStep("Category"));
+            document.getElementById("navSubcategory")?.addEventListener("click", () => showFilterStep("Subcategory"));
+            
+            // Language selection
+            document.querySelectorAll("#stepLanguage .filter-option").forEach(option => {
+              option.addEventListener("click", () => {
+                // Reset selected language
+                document.querySelectorAll("#stepLanguage .filter-option").forEach(opt => opt.classList.remove("selected"));
+                // Mark this option as selected
+                option.classList.add("selected");
+                // Store selected language
+                window.selectedLanguage = option.getAttribute("data-language");
+                // Move to next step
+                showFilterStep("Type");
+              });
+            });
+            
+            // Fiction/Non-fiction selection
+            document.querySelectorAll("#stepType .filter-option").forEach(option => {
+              option.addEventListener("click", () => {
+                // Reset selected type
+                document.querySelectorAll("#stepType .filter-option").forEach(opt => opt.classList.remove("selected"));
+                // Mark this option as selected
+                option.classList.add("selected");
+                // Store selected type
+                window.selectedType = option.getAttribute("data-type");
+                // Generate category options based on type
+                populateCategoryOptions(window.selectedType);
+                // Move to next step
+                showFilterStep("Category");
+              });
+            });
+            
+            // Apply initial filter based on user's previous selections (if any)
+            try {
+              const savedFilter = JSON.parse(localStorage.getItem("bookFilter") || "{}");
+              if (savedFilter.language) {
+                const languageOption = document.querySelector(`#stepLanguage .filter-option[data-language="${savedFilter.language}"]`);
+                if (languageOption) {
+                  languageOption.click();
+                }
+              }
+            } catch (e) {
+              console.error("Error applying saved filter:", e);
+            }
+          }
+          
+          function showFilterStep(step) {
+            console.log("Showing filter step:", step);
+            
+            // Hide all steps
+            document.querySelectorAll(".filter-step").forEach(el => el.classList.remove("active"));
+            // Show selected step
+            const stepEl = document.getElementById(`step${step}`);
+            if (stepEl) stepEl.classList.add("active");
+            
+            // Update navigation
+            document.querySelectorAll(".filter-nav-item").forEach(el => el.classList.remove("active"));
+            const navEl = document.getElementById(`nav${step}`);
+            if (navEl) navEl.classList.add("active");
+          }
+          
+          function populateCategoryOptions(type) {
+            console.log("Populating categories for type:", type);
+            
+            const categoryOptions = document.getElementById("categoryOptions");
+            if (!categoryOptions) return;
+            
+            categoryOptions.innerHTML = "";
+            
+            const categories = type === "fiction" ? fictionCategories : nonFictionCategories;
+            
+            categories.forEach(category => {
+              const option = document.createElement("span");
+              option.className = "filter-option";
+              option.setAttribute("data-category", category);
+              option.textContent = category;
+              
+              option.addEventListener("click", () => {
+                // Reset selected category
+                document.querySelectorAll("#stepCategory .filter-option").forEach(opt => opt.classList.remove("selected"));
+                // Mark this option as selected
+                option.classList.add("selected");
+                // Store selected category
+                window.selectedCategory = category;
+                // Generate subcategory options
+                populateSubcategoryOptions(category);
+                // Move to next step
+                showFilterStep("Subcategory");
+              });
+              
+              categoryOptions.appendChild(option);
+            });
+          }
+          
+          function populateSubcategoryOptions(category) {
+            console.log("Populating subcategories for category:", category);
+            
+            const subcategoryOptions = document.getElementById("subcategoryOptions");
+            if (!subcategoryOptions) return;
+            
+            subcategoryOptions.innerHTML = "";
+            
+            // Add "All" option first
+            const allOption = document.createElement("span");
+            allOption.className = "filter-option selected";
+            allOption.setAttribute("data-subcategory", "all");
+            allOption.textContent = "All";
+            
+            allOption.addEventListener("click", () => {
+              // Reset selected subcategory
+              document.querySelectorAll("#stepSubcategory .filter-option").forEach(opt => opt.classList.remove("selected"));
+              // Mark this option as selected
+              allOption.classList.add("selected");
+              // Store selected subcategory
+              window.selectedSubcategory = "all";
+              // Apply filter with all subcategories
+              applyAdvancedFilter();
+            });
+            
+            subcategoryOptions.appendChild(allOption);
+            
+            // Add specific subcategories
+            const subcategories = subcategoriesByCategory[category] || [];
+            
+            subcategories.forEach(subcategory => {
+              const option = document.createElement("span");
+              option.className = "filter-option";
+              option.setAttribute("data-subcategory", subcategory);
+              option.textContent = subcategory;
+              
+              option.addEventListener("click", () => {
+                // Reset selected subcategory
+                document.querySelectorAll("#stepSubcategory .filter-option").forEach(opt => opt.classList.remove("selected"));
+                // Mark this option as selected
+                option.classList.add("selected");
+                // Store selected subcategory
+                window.selectedSubcategory = subcategory;
+                // Apply filter
+                applyAdvancedFilter();
+              });
+              
+              subcategoryOptions.appendChild(option);
+            });
+            
+            // If no subcategories, apply filter immediately
+            if (subcategories.length === 0) {
+              window.selectedSubcategory = "all";
+              applyAdvancedFilter();
+            }
+          }
+          
+          function applyAdvancedFilter() {
+            console.log("Applying advanced filter");
+            
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const language = item.getAttribute("data-language");
+              const fiction = item.getAttribute("data-fiction");
+              const category = item.getAttribute("data-category");
+              const subcategories = item.getAttribute("data-subcategories");
+              
+              let shouldShow = true;
+              
+              if (window.selectedLanguage && language !== window.selectedLanguage.toLowerCase()) {
+                shouldShow = false;
+              }
+              
+              if (shouldShow && window.selectedType && fiction !== window.selectedType) {
+                shouldShow = false;
+              }
+              
+              if (shouldShow && window.selectedCategory && category !== window.selectedCategory.toLowerCase()) {
+                shouldShow = false;
+              }
+              
+              if (shouldShow && window.selectedSubcategory && window.selectedSubcategory !== "all") {
+                if (!subcategories || !subcategories.includes(window.selectedSubcategory.toLowerCase())) {
+                  shouldShow = false;
+                }
+              }
+              
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            // Show/hide no results message
+            const noResultsEl = document.getElementById("noResults");
+            if (noResultsEl) {
+              noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+            
+            // Save filter preferences
+            saveFilterPreferences();
+          }
+          
+          function saveFilterPreferences() {
+            try {
+              const filter = {
+                language: window.selectedLanguage,
+                type: window.selectedType,
+                category: window.selectedCategory,
+                subcategory: window.selectedSubcategory
+              };
+              
+              localStorage.setItem("bookFilter", JSON.stringify(filter));
+            } catch (e) {
+              console.error("Error saving filter preferences:", e);
+            }
+          }
+          
+          // Initialize user stats and gamification features
+          function initializeUserStats() {
+            console.log("Initializing user stats");
+            
+            // Get user stats from localStorage
+            const userStats = getUserStats();
+            
+            // Update UI with user stats
+            document.getElementById("userPointsValue").textContent = userStats.points;
+            document.getElementById("userBooksRead").textContent = userStats.booksRead;
+            
+            // Update progress bar - assuming 100 points is max for simplicity
+            const progressPercent = Math.min(100, (userStats.points / 1000) * 100);
+            const progressBar = document.getElementById("userProgressBar");
+            if (progressBar) progressBar.style.width = `${progressPercent}%`;
+            
+            // Update badges
+            const badgesContainer = document.getElementById("userBadges");
+            if (!badgesContainer) return;
+            
+            badgesContainer.innerHTML = '';
+            
+            // Generate badges based on achievements
+            const badges = generateBadges(userStats);
+            
+            badges.forEach(badge => {
+              const badgeElement = document.createElement("span");
+              badgeElement.className = "badge-tooltip";
+              badgeElement.setAttribute("data-tooltip", badge.name);
+              
+              const badgeIcon = document.createElement("span");
+              badgeIcon.className = "badge";
+              badgeIcon.innerHTML = badge.icon;
+              
+              badgeElement.appendChild(badgeIcon);
+              badgesContainer.appendChild(badgeElement);
+            });
+            
+            // Initialize read status for books
+            updateReadStatusUI();
+          }
+          
+          function getUserStats() {
+            try {
+              // Get stats from localStorage
+              const statsJSON = localStorage.getItem("userStats");
+              if (statsJSON) {
+                return JSON.parse(statsJSON);
+              }
+            } catch (e) {
+              console.error("Error getting user stats:", e);
+            }
+            
+            // Default stats
+            return {
+              points: 0,
+              booksRead: 0,
+              booksBookmarked: 0,
+              ratingsGiven: 0,
+              readBooks: []
+            };
+          }
+          
+          function saveUserStats(stats) {
+            try {
+              localStorage.setItem("userStats", JSON.stringify(stats));
+            } catch (e) {
+              console.error("Error saving user stats:", e);
+            }
+          }
+              // Define reader levels
+          function awardPoints(points, activity) {
+            const userStats = getUserStats();
+            
+            userStats.points += points;
+            
+            // Track specific activities
+            switch (activity) {
+              case 'read':
+                userStats.booksRead += 1;
+                break;
+              case 'bookmark':
+                userStats.booksBookmarked = (userStats.booksBookmarked || 0) + 1;
+                break;
+              case 'rate':
+                userStats.ratingsGiven = (userStats.ratingsGiven || 0) + 1;
+                break;
+            }
+            
+            saveUserStats(userStats);
+            initializeUserStats(); // Refresh UI
+          }
+          
+          function toggleReadStatus(slug, button) {
+            console.log("Toggling read status for:", slug);
+            
+            const userStats = getUserStats();
+            
+            if (!userStats.readBooks) {
+              userStats.readBooks = [];
+            }
+            
+            if (userStats.readBooks.includes(slug)) {
+              // Remove from read books
+              userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
+              button.textContent = "Mark Read";
+              button.classList.remove("read");
+              
+              // Reduce points - don't go below 0
+              userStats.points = Math.max(0, userStats.points - 10);
+              userStats.booksRead = Math.max(0, userStats.booksRead - 1);
+            } else {
+              // Add to read books
+              userStats.readBooks.push(slug);
+              button.textContent = "Read";
+              button.classList.add("read");
+              
+              // Award points
+              userStats.points += 10;
+              userStats.booksRead += 1;
+              
+              // Show achievements notification if badge earned
+              const oldBadges = generateBadges({...userStats, points: userStats.points - 10, booksRead: userStats.booksRead - 1});
+              const newBadges = generateBadges(userStats);
+              
+              if (newBadges.length > oldBadges.length) {
+                // New badge earned
+                const newBadge = newBadges[newBadges.length - 1];
+                showNotification(`🎉 Achievement Unlocked: ${newBadge.name} ${newBadge.icon}`);
+              } else {
+                showNotification("🎉 +10 points for reading!");
+              }
+            }
+            
+            saveUserStats(userStats);
+            initializeUserStats(); // Refresh UI
+          }
+          
+          function updateReadStatusUI() {
+            const userStats = getUserStats();
+            
+            if (!userStats.readBooks) {
+              return;
+            }
+            
+            document.querySelectorAll(".read-btn").forEach(button => {
+              const slug = button.getAttribute("data-slug");
+              if (userStats.readBooks.includes(slug)) {
+                button.textContent = "Read";
+                button.classList.add("read");
+              } else {
+                button.textContent = "Mark Read";
+                button.classList.remove("read");
+              }
+            });
+          }
+          
+          function showNotification(message) {
+            console.log("Showing notification:", message);
+            
+            // Create notification element
+            const notification = document.createElement("div");
+            notification.style.position = "fixed";
+            notification.style.bottom = "20px";
+            notification.style.right = "20px";
+            notification.style.backgroundColor = "#4CAF50";
+            notification.style.color = "white";
+            notification.style.padding = "12px 24px";
+            notification.style.borderRadius = "4px";
+            notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+            notification.style.zIndex = "1000";
+            notification.style.transition = "opacity 0.5s";
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+              notification.style.opacity = "0";
+              setTimeout(() => {
+                document.body.removeChild(notification);
+              }, 500);
+            }, 3000);
+          }
+          
+          function filterPosts() {
+            console.log("Filtering posts by search term");
+            
+            const input = document.getElementById("search").value.toLowerCase();
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const title = item.getAttribute("data-title");
+              const desc = item.getAttribute("data-description");
+              const tags = item.getAttribute("data-tags");
+              const author = item.getAttribute("data-author")?.toLowerCase();
+              
+              const shouldShow = title.includes(input) || 
+                                 desc.includes(input) || 
+                                 tags.includes(input) ||
+                                 (author && author.includes(input));
+              
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            // Show/hide no results message
+            const noResultsEl = document.getElementById("noResults");
+            if (noResultsEl) {
+              noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+          }
+
+          function sortPosts() {
+            console.log("Sorting posts");
+            
+            const sortByEl = document.getElementById("sortOptions");
+            if (!sortByEl) return;
+            
+            const sortBy = sortByEl.value;
+            const list = document.getElementById("postList");
+            if (!list) return;
+            
+            const items = Array.from(list.children);
+            
+            const sorted = items.sort((a, b) => {
+              if (sortBy === 'popular') {
+                return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+              }
+              if (sortBy === 'oldest') {
+                return new Date(a.dataset.date) - new Date(b.dataset.date);
+              }
+              if (sortBy === 'rated') {
+                const ratingA = parseFloat(a.dataset.rating);
+                const ratingB = parseFloat(b.dataset.rating);
+                const countA = parseInt(a.dataset.ratingCount);
+                const countB = parseInt(b.dataset.ratingCount);
+                
+                // If ratings are the same or both have less than 3 ratings, sort by views
+                if (ratingA === ratingB || (countA < 3 && countB < 3)) {
+                  return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+                }
+                
+                // If one has less than 3 ratings, prioritize the one with more
+                if (countA < 3) return 1;
+                if (countB < 3) return -1;
+                
+                return ratingB - ratingA;
+              }
+              return new Date(b.dataset.date) - new Date(a.dataset.date); // newest
+            });
+            
+            // Clear and re-append all items
+            while (list.firstChild) {
+              list.removeChild(list.firstChild);
+            }
+            
+            sorted.forEach(el => list.appendChild(el));
+            
+            // Check if we need to show "no results" after sorting
+            checkNoResults();
+          }
+
+          function filterByTag(tag) {
+            console.log("Filtering by tag:", tag);
+            
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const tags = item.getAttribute("data-tags").toLowerCase();
+              const shouldShow = tags.includes(tag.toLowerCase());
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            document.querySelectorAll(".tag, .category-filter").forEach(el => {
+              el.classList.toggle("active-tag", el.getAttribute("data-tag") === tag);
+            });
+            
+            // Show/hide no results message
+            const noResultsEl = document.getElementById("noResults");
+            if (noResultsEl) {
+              noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+          }
+
+          function filterByAuthor(author) {
+            console.log("Filtering by author:", author);
+            
+            let visibleCount = 0;
+            
+            document.querySelectorAll("#postList .post-item").forEach(item => {
+              const shouldShow = item.getAttribute("data-author") === author;
+              item.style.display = shouldShow ? '' : 'none';
+              if (shouldShow) visibleCount++;
+            });
+            
+            document.querySelectorAll(".author-filter").forEach(btn => {
+              btn.classList.toggle("active-tag", btn.getAttribute("data-author") === author);
+            });
+            
+            // Show/hide no results message
+            const noResultsEl = document.getElementById("noResults");
+            if (noResultsEl) {
+              noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+          }
+
+          function clearFilters() {
+            console.log("Clearing all filters");
+            
+            // Reset search box
+            const searchBox = document.getElementById("search");
+            if (searchBox) searchBox.value = "";
+            
+            // Show all items
+            document.querySelectorAll(".post-item").forEach(item => {
+              item.style.display = '';
+            });
+            
+            // Remove active class from all filter buttons
+            document.querySelectorAll(".tag, .author-filter, .category-filter").forEach(el => {
+              el.classList.remove("active-tag");
+            });
+            
+            // Reset advanced filter UI
+            document.querySelectorAll(".filter-option").forEach(opt => opt.classList.remove("selected"));
+            showFilterStep("Language");
+            
+            // Clear filter preferences
+            window.selectedLanguage = null;
+            window.selectedType = null;
+            window.selectedCategory = null;
+            window.selectedSubcategory = null;
+            localStorage.removeItem("bookFilter");
+            
+            // Hide no results message
+            const noResultsEl = document.getElementById("noResults");
+            if (noResultsEl) {
+              noResultsEl.style.display = 'none';
+            }
+          }
+          
+          function checkNoResults() {
+            // Count visible items
+            const visibleItems = Array.from(document.querySelectorAll(".post-item"))
+              .filter(item => item.style.display !== 'none').length;
+            
+            // Show/hide no results message
+            const noResultsEl = document.getElementById("noResults");
+            if (noResultsEl) {
+              noResultsEl.style.display = visibleItems === 0 ? 'block' : 'none';
+            }
+          }
+          
+          function initializeBookmarks() {
+            console.log("Initializing bookmarks");
+            
+            // Get bookmarks from localStorage
+            const bookmarks = getBookmarks();
+            
+            // Update UI to reflect bookmarked status
+            document.querySelectorAll(".bookmark-btn").forEach(btn => {
+              const slug = btn.getAttribute("data-slug");
+              if (bookmarks.includes(slug)) {
+                btn.classList.add("active");
+              }
+            });
+          }
+          
+          function getBookmarks() {
+            try {
+              // Get bookmarks from localStorage
+              const bookmarksJSON = localStorage.getItem("bookmarks");
+              return bookmarksJSON ? JSON.parse(bookmarksJSON) : [];
+            } catch (e) {
+              console.error("Error getting bookmarks:", e);
+              return [];
+            }
+          }
+          
+          function toggleBookmark(slug, button) {
+            console.log("Toggling bookmark for:", slug);
+            
+            // Get current bookmarks
+            let bookmarks = getBookmarks();
+            const userStats = getUserStats();
+            let pointsAwarded = false;
+            
+            // Toggle bookmark status
+            if (bookmarks.includes(slug)) {
+              // Remove from bookmarks
+              bookmarks = bookmarks.filter(id => id !== slug);
+              button.classList.remove("active");
+            } else {
+              // Add to bookmarks
+              bookmarks.push(slug);
+              button.classList.add("active");
+              
+              // Award points for first time bookmarking if not already tracked
+              if (!userStats.bookmarks || !userStats.bookmarks.includes(slug)) {
+                awardPoints(5, 'bookmark');
+                pointsAwarded = true;
+                
+                // Track bookmarked item
+                if (!userStats.bookmarks) userStats.bookmarks = [];
+                userStats.bookmarks.push(slug);
+                saveUserStats(userStats);
+              }
+            }
+            
+            // Save to localStorage
+            localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+            
+            // Show notification if points awarded
+            if (pointsAwarded) {
+              showNotification("🎉 +5 points for bookmarking!");
+            }
+          }
+          
+          function renderBookmarksList() {
+            console.log("Rendering bookmarks list");
+            
+            const bookmarksList = document.getElementById("bookmarksList");
+            if (!bookmarksList) return;
+            
+            const bookmarks = getBookmarks();
+            
+            // Clear existing content
+            bookmarksList.innerHTML = "";
+            
+            if (bookmarks.length === 0) {
+              bookmarksList.innerHTML = `<div class="empty-bookmarks">You haven't bookmarked any book summaries yet.</div>`;
+              return;
+            }
+            
+            // Create a list of bookmarked books from the DOM
+            const bookmarkedPosts = [];
+            
+            // Loop through all posts and find the bookmarked ones
+            document.querySelectorAll(".post-item").forEach(item => {
+              const slug = item.getAttribute("data-slug");
+              if (bookmarks.includes(slug)) {
+                const titleEl = item.querySelector("h3");
+                const authorEl = item.querySelector(".author");
+                
+                bookmarkedPosts.push({
+                  id: slug,
+                  title: titleEl ? titleEl.textContent : "Unknown Title",
+                  author: authorEl ? authorEl.textContent.replace("By ", "") : "",
+                  date: item.getAttribute("data-date")
+                });
+              }
+            });
+            
+            const list = document.createElement("ul");
+            list.style.display = "block"; // Override flex display for this list
+            
+            bookmarkedPosts.forEach(post => {
+              const item = document.createElement("li");
+              item.innerHTML = `
+                <h3><a href="/books/${post.id}/">${post.title}</a></h3>
+                ${post.author ? `<p class="author">By ${post.author}</p>` : ''}
+                <p class="date">${new Date(post.date).toLocaleDateString()}</p>
+                <button class="remove-bookmark" data-slug="${post.id}">Remove</button>
+              `;
+              list.appendChild(item);
+            });
+            
+            bookmarksList.appendChild(list);
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll(".remove-bookmark").forEach(btn => {
+              btn.addEventListener("click", () => {
+                const slug = btn.getAttribute("data-slug");
+                // Remove from bookmarks
+                let bookmarks = getBookmarks().filter(id => id !== slug);
+                localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+                
+                // Update UI
+                document.querySelectorAll(`.bookmark-btn[data-slug="${slug}"]`).forEach(bookmarkBtn => {
+                  bookmarkBtn.classList.remove("active");
+                });
+                
+                renderBookmarksList();
+              });
+            });
+          }
+          
+          function exportBookmarksList() {
+            console.log("Exporting bookmarks list");
+            
+            const bookmarks = getBookmarks();
+            
+            if (bookmarks.length === 0) {
+              alert("You don't have any bookmarked summaries to export.");
+              return;
+            }
+            
+            // Get bookmarked books
+            const bookmarkedPosts = [];
+            
+            // Loop through all posts and find the bookmarked ones
+            document.querySelectorAll(".post-item").forEach(item => {
+              const slug = item.getAttribute("data-slug");
+              if (bookmarks.includes(slug)) {
+                const titleEl = item.querySelector("h3");
+                const authorEl = item.querySelector(".author");
+                
+                bookmarkedPosts.push({
+                  title: titleEl ? titleEl.textContent : "Unknown Title",
+                  author: authorEl ? authorEl.textContent.replace("By ", "") : ""
+                });
+              }
+            });
+            
+            // Format the list as text
+            let exportText = "# My Bookmarked Book Summaries\n\n";
+            
+            bookmarkedPosts.forEach(post => {
+              exportText += `- ${post.title}${post.author ? ` by ${post.author}` : ''}\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'my_bookmarked_summaries.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+          
+          function submitRating(slug, rating) {
+            console.log("Submitting rating:", rating, "for", slug);
+            
+            // Get all stars for this book
+            const starsContainer = document.querySelector(`.rating-display[data-slug="${slug}"] .stars`);
+            if (starsContainer) {
+              const stars = starsContainer.querySelectorAll('.star');
+              
+              // Update UI to show the new rating
+              stars.forEach((star, index) => {
+                if (index < rating) {
+                  star.textContent = '★';
+                } else {
+                  star.textContent = '☆';
+                }
+              });
+              
+              // Update the display of average rating (in a real app this would come from the server)
+              const ratingDisplay = starsContainer.nextElementSibling;
+              const countDisplay = ratingDisplay.nextElementSibling;
+              
+              // Simple client-side implementation - this would actually be done server-side
+              const currentItem = document.querySelector(`.post-item[data-slug="${slug}"]`);
+              if (currentItem) {
+                const currentRating = parseFloat(currentItem.getAttribute('data-rating')) || 0;
+                const currentCount = parseInt(currentItem.getAttribute('data-rating-count')) || 0;
+                
+                let newCount, newAverage;
+                
+                // If it's the first rating
+                if (currentCount === 0) {
+                  newCount = 1;
+                  newAverage = rating;
+                } else {
+                  // Simple average calculation (in a real app this would be more sophisticated)
+                  newCount = currentCount + 1;
+                  newAverage = ((currentRating * currentCount) + rating) / newCount;
+                }
+                
+                // Update the displays
+                ratingDisplay.textContent = newAverage.toFixed(1);
+                countDisplay.textContent = `(${newCount} ratings)`;
+                
+                // Update the data attributes
+                currentItem.setAttribute('data-rating', newAverage);
+                currentItem.setAttribute('data-rating-count', newCount);
+                
+                // Award points for rating
+                const userStats = getUserStats();
+                
+                // Check if user has already rated this book
+                if (!userStats.ratings) userStats.ratings = {};
+                
+                if (!userStats.ratings[slug]) {
+                  userStats.ratings[slug] = rating;
+                  awardPoints(3, 'rate');
+                  showNotification("🎉 +3 points for rating!");
+                } else {
+                  // User is updating their rating
+                  userStats.ratings[slug] = rating;
+                }
+                
+                saveUserStats(userStats);
+              }
+            }
+            
+            // In a real implementation, you would call an API here
+            console.log(`Rating ${rating} submitted for ${slug}`);
+          }
+        </script>
+      </section>
+    </main>
+    <Footer />
+
+<script set:html={`
+  window.posts = ${JSON.stringify(posts.map(post => ({
+    id: post.id,
+    title: post.data.title,
+    author: post.data.author,
+    date: post.data.pubDate.toISOString(),
+    rating: post.data.ratings?.average || 0,
+    category: post.data.category,
+    isFiction: post.data.isFiction,
+    language: post.data.language || 'English'
+  })))};
+
+  window.postSlugs = ${JSON.stringify(postSlugs)};
+  window.fictionCategories = ${JSON.stringify(fictionCategories)};
+  window.nonFictionCategories = ${JSON.stringify(nonFictionCategories)};
+  window.subcategoriesByCategory = ${JSON.stringify(subcategoriesByCategory)};
+  window.SUPABASE_URL = "${SUPABASE_URL}";
+  window.SUPABASE_ANON_KEY = "${SUPABASE_ANON_KEY}";
+`}></script>
+
+<script>
+// Immediately executed function to avoid global scope pollution
+(function() {
+  // Define reader levels globally within our IIFE
+  const readerLevels = [
+    { name: "Novice Reader", icon: "📚", minPoints: 0 },
+    { name: "Book Explorer", icon: "🔍", minPoints: 50 },
+    { name: "Bookworm", icon: "🐛", minPoints: 100 },
+    { name: "Avid Reader", icon: "📖", minPoints: 200 },
+    { name: "Scholar", icon: "🧠", minPoints: 350 },
+    { name: "Bibliophile", icon: "🤓", minPoints: 500 },
+    { name: "Literary Critic", icon: "⭐", minPoints: 750 },
+    { name: "Book Master", icon: "🏆", minPoints: 1000 },
+    { name: "Sage Reader", icon: "🧙", minPoints: 1500 },
+    { name: "Reading Legend", icon: "👑", minPoints: 2000 }
+  ];
+  
+  console.log("Book features initializing...");
+  
+  // Run when DOM is fully loaded
+  function initFeatures() {
+    setupEventListeners();
+    initializeBookmarks();
+    initializeReadStatus();
+    updateUserStats();
+    initializeFilterUI();
+    console.log("Book features initialized");
+  }
+  
+  // Setup all event listeners for the page
+  function setupEventListeners() {
+    // Search functionality
+    const searchInput = document.getElementById("search");
+    if (searchInput) {
+      searchInput.addEventListener("input", filterPosts);
+    }
+    
+    // Sort dropdown
+    const sortOptions = document.getElementById("sortOptions");
+    if (sortOptions) {
+      sortOptions.addEventListener("change", sortPosts);
+    }
+    
+    // Random book button
+    const randomBtn = document.getElementById("randomBook");
+    if (randomBtn) {
+      randomBtn.addEventListener("click", function() {
+        const items = document.querySelectorAll(".post-item");
+        if (items.length === 0) return;
+        
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        const link = randomItem.querySelector("a");
+        if (link && link.href) {
+          window.location.href = link.href;
+        }
+      });
+    }
+    
+    // Bookmarks modal
+    const bookmarksBtn = document.getElementById("bookmarksBtn");
+    const bookmarksModal = document.getElementById("bookmarksModal");
+    if (bookmarksBtn && bookmarksModal) {
+      bookmarksBtn.addEventListener("click", function() {
+        renderBookmarksList();
+        bookmarksModal.style.display = "flex";
+      });
+    }
+    
+    // Close bookmarks modal
+    const closeBookmarks = document.getElementById("closeBookmarks");
+    if (closeBookmarks && bookmarksModal) {
+      closeBookmarks.addEventListener("click", function() {
+        bookmarksModal.style.display = "none";
+      });
+    }
+    
+    // Closing modal by clicking outside
+    if (bookmarksModal) {
+      bookmarksModal.addEventListener("click", function(e) {
+        if (e.target === this) {
+          this.style.display = "none";
+        }
+      });
+    }
+    
+    // Export bookmarks
+    const exportBookmarks = document.getElementById("exportBookmarks");
+    if (exportBookmarks) {
+      exportBookmarks.addEventListener("click", exportBookmarksList);
+    }
+    
+    // Leaderboard modal
+    const leaderboardBtn = document.getElementById("leaderboardBtn");
+    const leaderboardModal = document.getElementById("leaderboardModal");
+    if (leaderboardBtn && leaderboardModal) {
+      leaderboardBtn.addEventListener("click", function() {
+        populateLeaderboard();
+        leaderboardModal.style.display = "flex";
+      });
+    }
+    
+    // Close leaderboard modal
+    const closeLeaderboard = document.getElementById("closeLeaderboard");
+    if (closeLeaderboard && leaderboardModal) {
+      closeLeaderboard.addEventListener("click", function() {
+        leaderboardModal.style.display = "none";
+      });
+    }
+    
+    // Closing modal by clicking outside
+    if (leaderboardModal) {
+      leaderboardModal.addEventListener("click", function(e) {
+        if (e.target === this) {
+          this.style.display = "none";
+        }
+      });
+    }
+    
+    // Clear filters button
+    const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener("click", clearFilters);
+    }
+    
+    // Top rated button
+    const topRatedBtn = document.getElementById("topRatedBtn");
+    if (topRatedBtn) {
+      topRatedBtn.addEventListener("click", function() {
+        if (sortOptions) {
+          sortOptions.value = "rated";
+          sortPosts();
+        }
+      });
+    }
+    
+    // Tag filtering
+    document.querySelectorAll(".tag, .category-filter").forEach(el => {
+      el.addEventListener("click", function(e) {
+        e.preventDefault();
+        const tag = this.getAttribute("data-tag");
+        if (tag) filterByTag(tag);
+      });
+    });
+    
+    // Author filtering
+    document.querySelectorAll(".author-filter").forEach(el => {
+      el.addEventListener("click", function(e) {
+        e.preventDefault();
+        const author = this.getAttribute("data-author");
+        if (author) filterByAuthor(author);
+      });
+    });
+    
+    // Bookmark buttons
+    document.querySelectorAll(".bookmark-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleBookmark(slug, this);
+      });
+    });
+    
+    // Read status buttons
+    document.querySelectorAll(".read-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const slug = this.getAttribute("data-slug");
+        if (slug) toggleReadStatus(slug, this);
+      });
+    });
+    
+    // Rating stars
+    document.querySelectorAll(".star").forEach(star => {
+      star.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const rating = parseInt(this.getAttribute("data-rating"));
+        const slug = this.getAttribute("data-slug");
+        if (rating && slug) submitRating(slug, rating);
+      });
+    });
+  }
+  
+  // ---- FILTER FUNCTIONS ----
+  
+  function filterPosts() {
+    const searchInput = document.getElementById("search");
+    if (!searchInput) return;
+    
+    const query = searchInput.value.toLowerCase();
+    let visibleCount = 0;
+    
+    document.querySelectorAll(".post-item").forEach(item => {
+      const title = (item.getAttribute("data-title") || "").toLowerCase();
+      const author = (item.getAttribute("data-author") || "").toLowerCase();
+      const desc = (item.getAttribute("data-description") || "").toLowerCase();
+      const tags = (item.getAttribute("data-tags") || "").toLowerCase();
+      
+      const match = title.includes(query) || 
+                   author.includes(query) || 
+                   desc.includes(query) || 
+                   tags.includes(query);
+      
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+  
+  function filterByTag(tag) {
+    if (!tag) return;
+    
+    // Reset active state on all tag buttons
+    document.querySelectorAll(".tag, .category-filter").forEach(el => {
+      el.classList.toggle("active-tag", el.getAttribute("data-tag") === tag);
+    });
+    
+    let visibleCount = 0;
+    
+    document.querySelectorAll(".post-item").forEach(item => {
+      const tags = (item.getAttribute("data-tags") || "").toLowerCase();
+      const match = tags.includes(tag.toLowerCase());
+      
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+  
+  function filterByAuthor(author) {
+    if (!author) return;
+    
+    // Reset active state on all author buttons
+    document.querySelectorAll(".author-filter").forEach(btn => {
+      btn.classList.toggle("active-tag", btn.getAttribute("data-author") === author);
+    });
+    
+    let visibleCount = 0;
+    
+    document.querySelectorAll(".post-item").forEach(item => {
+      const match = item.getAttribute("data-author") === author;
+      
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+  }
+  
+  function sortPosts() {
+    const sortOptions = document.getElementById("sortOptions");
+    const postList = document.getElementById("postList");
+    if (!sortOptions || !postList) return;
+    
+    const sortBy = sortOptions.value;
+    const items = Array.from(postList.children);
+    
+    items.sort((a, b) => {
+      if (sortBy === "popular") {
+        return (parseInt(b.getAttribute("data-views") || 0) - 
+                parseInt(a.getAttribute("data-views") || 0));
+      }
+      else if (sortBy === "oldest") {
+        return (new Date(a.getAttribute("data-date") || 0) - 
+                new Date(b.getAttribute("data-date") || 0));
+      }
+      else if (sortBy === "rated") {
+        return (parseFloat(b.getAttribute("data-rating") || 0) - 
+                parseFloat(a.getAttribute("data-rating") || 0));
+      }
+      else {
+        // Default: newest
+        return (new Date(b.getAttribute("data-date") || 0) - 
+                new Date(a.getAttribute("data-date") || 0));
+      }
+    });
+    
+    // Remove all items
+    while (postList.firstChild) {
+      postList.removeChild(postList.firstChild);
+    }
+    
+    // Add sorted items
+    items.forEach(item => postList.appendChild(item));
+  }
+  
+  function clearFilters() {
+    // Reset search box
+    const searchInput = document.getElementById("search");
+    if (searchInput) searchInput.value = "";
+    
+    // Show all items
+    document.querySelectorAll(".post-item").forEach(item => {
+      item.style.display = "";
+    });
+    
+    // Remove active class from all filter buttons
+    document.querySelectorAll(".tag, .author-filter, .category-filter").forEach(el => {
+      el.classList.remove("active-tag");
+    });
+    
+    // Reset advanced filter UI
+    document.querySelectorAll(".filter-option").forEach(opt => 
+      opt.classList.remove("selected"));
+    
+    showFilterStep("Language");
+    
+    // Clear filter preferences
+    window.selectedLanguage = null;
+    window.selectedType = null;
+    window.selectedCategory = null;
+    window.selectedSubcategory = null;
+    
+    try {
+      localStorage.removeItem("bookFilter");
+    } catch (e) {}
+    
+    // Hide no results message
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = "none";
+    }
+  }
+  
+  // ---- BOOKMARKS FUNCTIONALITY ----
+  
+  function initializeBookmarks() {
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      
+      document.querySelectorAll(".bookmark-btn").forEach(btn => {
+        const slug = btn.getAttribute("data-slug");
+        if (bookmarks.includes(slug)) {
+          btn.classList.add("active");
+        }
+      });
+    } catch (e) {
+      console.error("Error initializing bookmarks:", e);
+    }
+  }
+  
+  function toggleBookmark(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      let pointsAwarded = false;
+      
+      if (bookmarks.includes(slug)) {
+        // Remove bookmark
+        bookmarks = bookmarks.filter(id => id !== slug);
+        button.classList.remove("active");
+      } else {
+        // Add bookmark
+        bookmarks.push(slug);
+        button.classList.add("active");
+        
+        // Award points for first-time bookmarking
+        if (!userStats.bookmarks || !userStats.bookmarks.includes(slug)) {
+          if (!userStats.points) userStats.points = 0;
+          userStats.points += 5;
+          
+          if (!userStats.bookmarks) userStats.bookmarks = [];
+          userStats.bookmarks.push(slug);
+          
+          if (!userStats.booksBookmarked) userStats.booksBookmarked = 0;
+          userStats.booksBookmarked++;
+          
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+          pointsAwarded = true;
+          updateUserStats();
+        }
+      }
+      
+      localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+      
+      if (pointsAwarded) {
+        showNotification("🎉 +5 points for bookmarking!");
+      }
+    } catch (e) {
+      console.error("Error toggling bookmark:", e);
+    }
+  }
+  
+  function renderBookmarksList() {
+    const bookmarksList = document.getElementById("bookmarksList");
+    if (!bookmarksList) return;
+    
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      
+      // Clear existing content
+      bookmarksList.innerHTML = "";
+      
+      if (bookmarks.length === 0) {
+        bookmarksList.innerHTML = 
+          '<div class="empty-bookmarks">You haven\'t bookmarked any book summaries yet.</div>';
+        return;
+      }
+      
+      // Create a list for bookmarked posts
+      const bookmarkedItems = [];
+      
+      document.querySelectorAll(".post-item").forEach(item => {
+        const slug = item.getAttribute("data-slug");
+        if (bookmarks.includes(slug)) {
+          const titleEl = item.querySelector("h3");
+          const authorEl = item.querySelector(".author");
+          
+          bookmarkedItems.push({
+            id: slug,
+            title: titleEl ? titleEl.textContent : "Unknown Title",
+            author: authorEl ? authorEl.textContent.replace("By ", "") : "",
+            date: item.getAttribute("data-date")
+          });
+        }
+      });
+      
+      const list = document.createElement("ul");
+      list.style.display = "block"; // Override flex display
+      
+      bookmarkedItems.forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <h3><a href="/books/${item.id}/">${item.title}</a></h3>
+          ${item.author ? `<p class="author">By ${item.author}</p>` : ''}
+          <p class="date">${new Date(item.date).toLocaleDateString()}</p>
+          <button class="remove-bookmark" data-slug="${item.id}">Remove</button>
+        `;
+        list.appendChild(li);
+      });
+      
+      bookmarksList.appendChild(list);
+      
+      // Add event listeners for remove buttons
+      document.querySelectorAll(".remove-bookmark").forEach(btn => {
+        btn.addEventListener("click", function() {
+          const slug = this.getAttribute("data-slug");
+          if (!slug) return;
+          
+          try {
+            const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]")
+              .filter(id => id !== slug);
+            
+            localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+            
+            // Update UI
+            document.querySelectorAll(`.bookmark-btn[data-slug="${slug}"]`).forEach(b => {
+              b.classList.remove("active");
+            });
+            
+            renderBookmarksList();
+          } catch (e) {
+            console.error("Error removing bookmark:", e);
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error rendering bookmarks list:", e);
+    }
+  }
+  
+  function exportBookmarksList() {
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      
+      if (bookmarks.length === 0) {
+        alert("You don't have any bookmarked summaries to export.");
+        return;
+      }
+      
+      // Get bookmarked books
+      const bookmarkedItems = [];
+      
+      document.querySelectorAll(".post-item").forEach(item => {
+        const slug = item.getAttribute("data-slug");
+        if (bookmarks.includes(slug)) {
+          const titleEl = item.querySelector("h3");
+          const authorEl = item.querySelector(".author");
+          
+          bookmarkedItems.push({
+            title: titleEl ? titleEl.textContent : "Unknown Title",
+            author: authorEl ? authorEl.textContent.replace("By ", "") : ""
+          });
+        }
+      });
+      
+      // Format as text
+      let exportText = "# My Bookmarked Book Summaries\n\n";
+      
+      bookmarkedItems.forEach(item => {
+        exportText += `- ${item.title}${item.author ? ` by ${item.author}` : ''}\n`;
+      });
+      
+      // Create download
+      const blob = new Blob([exportText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'my_bookmarked_summaries.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Error exporting bookmarks:", e);
+    }
+  }
+  
+  // ---- READ STATUS FUNCTIONALITY ----
+  
+  function initializeReadStatus() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const readBooks = userStats.readBooks || [];
+      
+      document.querySelectorAll(".read-btn").forEach(btn => {
+        const slug = btn.getAttribute("data-slug");
+        if (readBooks.includes(slug)) {
+          btn.textContent = "Read";
+          btn.classList.add("read");
+        } else {
+          btn.textContent = "Mark Read";
+          btn.classList.remove("read");
+        }
+      });
+    } catch (e) {
+      console.error("Error initializing read status:", e);
+    }
+  }
+  
+  function toggleReadStatus(slug, button) {
+    if (!slug || !button) return;
+    
+    try {
+      let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      
+      if (!userStats.readBooks) userStats.readBooks = [];
+      if (!userStats.points) userStats.points = 0;
+      if (!userStats.booksRead) userStats.booksRead = 0;
+      
+      if (userStats.readBooks.includes(slug)) {
+        // Remove from read books
+        userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
+        button.textContent = "Mark Read";
+        button.classList.remove("read");
+        
+        // Reduce points (minimum 0)
+        userStats.points = Math.max(0, userStats.points - 10);
+        userStats.booksRead = Math.max(0, userStats.booksRead - 1);
+      } else {
+        // Add to read books
+        userStats.readBooks.push(slug);
+        button.textContent = "Read";
+        button.classList.add("read");
+        
+        // Award points
+        userStats.points += 10;
+        userStats.booksRead++;
+        
+        showNotification("🎉 +10 points for reading!");
+      }
+      
+      localStorage.setItem("userStats", JSON.stringify(userStats));
+      updateUserStats();
+    } catch (e) {
+      console.error("Error toggling read status:", e);
+    }
+  }
+  
+  // ---- RATINGS FUNCTIONALITY ----
+  
+  function submitRating(slug, rating) {
+    if (!slug || !rating) return;
+    
+    try {
+      // Get all stars for this book
+      const starsContainer = document.querySelector(`.rating-display[data-slug="${slug}"] .stars`);
+      if (!starsContainer) return;
+      
+      const stars = starsContainer.querySelectorAll('.star');
+      
+      // Update star UI
+      stars.forEach((star, index) => {
+        star.textContent = (index < rating) ? '★' : '☆';
+      });
+      
+      // Update the display
+      const ratingDisplay = starsContainer.nextElementSibling;
+      const countDisplay = ratingDisplay?.nextElementSibling;
+      
+      if (ratingDisplay && countDisplay) {
+        const item = document.querySelector(`.post-item[data-slug="${slug}"]`);
+        if (!item) return;
+        
+        const currentRating = parseFloat(item.getAttribute('data-rating') || '0');
+        const currentCount = parseInt(item.getAttribute('data-rating-count') || '0');
+        
+        // Calculate new rating
+        let newCount, newAverage;
+        
+        if (currentCount === 0) {
+          newCount = 1;
+          newAverage = rating;
+        } else {
+          newCount = currentCount + 1;
+          newAverage = ((currentRating * currentCount) + rating) / newCount;
+        }
+        
+        // Update displays
+        ratingDisplay.textContent = newAverage.toFixed(1);
+        countDisplay.textContent = `(${newCount} ratings)`;
+        
+        // Update data attributes
+        item.setAttribute('data-rating', newAverage);
+        item.setAttribute('data-rating-count', newCount);
+        
+        // Award points for rating
+        let userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+        
+        if (!userStats.ratings) userStats.ratings = {};
+        
+        if (!userStats.ratings[slug]) {
+          userStats.ratings[slug] = rating;
+          
+          if (!userStats.points) userStats.points = 0;
+          userStats.points += 3;
+          
+          if (!userStats.ratingsGiven) userStats.ratingsGiven = 0;
+          userStats.ratingsGiven++;
+          
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+          updateUserStats();
+          showNotification("🎉 +3 points for rating!");
+        } else {
+          // Update existing rating
+          userStats.ratings[slug] = rating;
+          localStorage.setItem("userStats", JSON.stringify(userStats));
+        }
+      }
+    } catch (e) {
+      console.error("Error submitting rating:", e);
+    }
+  }
+  
+  // ---- USER STATS & GAMIFICATION ----
+  
+  function updateUserStats() {
+    try {
+      const userStats = JSON.parse(localStorage.getItem("userStats") || "{}");
+      const points = userStats.points || 0;
+      
+      // Update points display
+      const pointsEl = document.getElementById("userPointsValue");
+      if (pointsEl) pointsEl.textContent = points;
+      
+      // Update books read count
+      const booksReadEl = document.getElementById("userBooksRead");
+      if (booksReadEl) booksReadEl.textContent = userStats.booksRead || 0;
+      
+      // Update user level
+      const currentLevel = updateUserLevel(points);
+      
+      // Calculate progress to next level
+      let progressPercent;
+      const levelIndex = readerLevels.findIndex(level => level.name === currentLevel.name);
+      if (levelIndex < readerLevels.length - 1) {
+        const nextLevel = readerLevels[levelIndex + 1];
+        const pointsForCurrentLevel = points - currentLevel.minPoints;
+        const pointsNeededForNextLevel = nextLevel.minPoints - currentLevel.minPoints;
+        progressPercent = Math.min(100, (pointsForCurrentLevel / pointsNeededForNextLevel) * 100);
+      } else {
+        // Already at max level
+        progressPercent = 100;
+      }
+      
+      // Update progress bar
+      const progressBar = document.getElementById("userProgressBar");
+      if (progressBar) {
+        progressBar.style.width = `${progressPercent}%`;
+      }
+      
+      // Update badges
+      const badgesContainer = document.getElementById("userBadges");
+      if (badgesContainer) {
+        badgesContainer.innerHTML = '';
+        
+        // Generate badges based on achievements
+        const badges = generateBadges(userStats);
+        
+        badges.forEach(badge => {
+          const badgeElement = document.createElement("span");
+          badgeElement.className = "badge-tooltip";
+          badgeElement.setAttribute("data-tooltip", badge.name);
+          
+          const badgeIcon = document.createElement("span");
+          badgeIcon.className = "badge";
+          badgeIcon.innerHTML = badge.icon;
+          
+          badgeElement.appendChild(badgeIcon);
+          badgesContainer.appendChild(badgeElement);
+        });
+      }
+      
+      // Initialize read status for books
+      updateReadStatusUI();
+    } catch (e) {
+      console.error("Error updating user stats:", e);
+    }
+  }
+
+  function updateUserLevel(points) {
+    // Find the highest level that the user qualifies for
+    let currentLevel = readerLevels[0]; // Default to first level
+    
+    for (let i = readerLevels.length - 1; i >= 0; i--) {
+      if (points >= readerLevels[i].minPoints) {
+        currentLevel = readerLevels[i];
+        break;
+      }
+    }
+    
+    // Update the level display
+    const levelIcon = document.getElementById('currentLevelIcon');
+    const levelName = document.getElementById('currentLevelName');
+    
+    if (levelIcon) levelIcon.textContent = currentLevel.icon;
+    if (levelName) levelName.textContent = currentLevel.name;
+    
+    return currentLevel;
+  }
+  
+  function generateBadges(userStats) {
+    const badges = [];
+    
+    // Reader badges
+    if (userStats.booksRead >= 1) {
+      badges.push({ name: "First Book Read", icon: "📚" });
+    }
+    if (userStats.booksRead >= 5) {
+      badges.push({ name: "Bookworm", icon: "🐛" });
+    }
+    if (userStats.booksRead >= 10) {
+      badges.push({ name: "Avid Reader", icon: "📖" });
+    }
+    if (userStats.booksRead >= 25) {
+      badges.push({ name: "Book Master", icon: "🏆" });
+    }
+    
+    // Points badges
+    if (userStats.points >= 100) {
+      badges.push({ name: "Century Club", icon: "💯" });
+    }
+    if (userStats.points >= 500) {
+      badges.push({ name: "Scholar", icon: "🧠" });
+    }
+    if (userStats.points >= 1000) {
+      badges.push({ name: "Intellectual", icon: "🎓" });
+    }
+    
+    // Activity badges
+    if (userStats.booksBookmarked >= 5) {
+      badges.push({ name: "Curator", icon: "🔖" });
+    }
+    if (userStats.ratingsGiven >= 10) {
+      badges.push({ name: "Critic", icon: "⭐" });
+    }
+    
+    return badges;
+  }
+  
+  function showNotification(message) {
+    const notification = document.createElement("div");
+    notification.style.position = "fixed";
+    notification.style.bottom = "20px";
+    notification.style.right = "20px";
+    notification.style.backgroundColor = "#4CAF50";
+    notification.style.color = "white";
+    notification.style.padding = "12px 24px";
+    notification.style.borderRadius = "4px";
+    notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+    notification.style.zIndex = "1000";
+    notification.style.transition = "opacity 0.5s";
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 500);
+    }, 3000);
+  }
+  
+  // ---- LEADERBOARD FUNCTIONALITY ----
+  
+  async function populateLeaderboard() {
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    if (!leaderboardBody) return;
+    
+    // Start with loading indicator
+    leaderboardBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 1rem;">
+          Loading leaderboard data...
+        </td>
+      </tr>
+    `;
+    
+    try {
+      // Try to fetch from Supabase if configured
+      let data = [];
+      const SUPABASE_URL = window.SUPABASE_URL;
+      const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+      
+      if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/user_points?order=points.desc&limit=10`, {
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+            }
+          });
+          data = await res.json();
+        } catch (err) {
+          console.error("Error fetching leaderboard:", err);
+        }
+      }
+      
+      // If we have data, use it, otherwise use mock data
+      if (Array.isArray(data) && data.length > 0) {
+        displayLeaderboardData(data);
+      } else {
+        displayMockLeaderboardData();
+      }
+    } catch (e) {
+      console.error("Error populating leaderboard:", e);
+      displayMockLeaderboardData();
+    }
+  }
+  
+  // Add level to leaderboard data
+  function addLevelToLeaderboard(data) {
+    return data.map(user => {
+      // Determine user level based on points
+      let userLevel = readerLevels[0]; // Default to first level
+      for (let i = readerLevels.length - 1; i >= 0; i--) {
+        if (user.points >= readerLevels[i].minPoints) {
+          userLevel = readerLevels[i];
+          break;
+        }
+      }
+      
+      // Add level to user object
+      return {...user, level: userLevel};
+    });
+  }
+  
+  function displayLeaderboardData(data) {
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    if (!leaderboardBody) return;
+    
+    // Add levels to data
+    data = addLevelToLeaderboard(data);
+    
+    leaderboardBody.innerHTML = '';
+    
+    data.forEach((user, index) => {
+      const badges = user.badges || [];
+      const badgesHtml = Array.isArray(badges) ? badges.map(badge => 
+        `<span class="badge-tooltip" data-tooltip="${badge.name || ''}">
+          <span class="badge">${badge.icon || '🏅'}</span>
+        </span>`
+      ).join('') : '';
+      
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>
+          <div class="leaderboard-user">
+            <span class="level-indicator">${user.level.icon}</span>
+            ${user.username || 'Anonymous Reader'}
+            <span class="level-name">${user.level.name}</span>
+          </div>
+        </td>
+        <td>${user.books_read || 0}</td>
+        <td>${user.points || 0}</td>
+        <td>${badgesHtml || ''}</td>
+      `;
+      
+      leaderboardBody.appendChild(row);
+    });
+  }
+  
+  function displayMockLeaderboardData() {
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    if (!leaderboardBody) return;
+    
+    leaderboardBody.innerHTML = ''; // Clear loading indicator
+    
+    const mockData = [
+      { username: "BookMaster", books_read: 42, points: 1250, badges: [{ name: "Intellectual", icon: "🎓" }, { name: "Book Master", icon: "🏆" }] },
+      { username: "LiteraryExplorer", books_read: 36, points: 1050, badges: [{ name: "Scholar", icon: "🧠" }, { name: "Avid Reader", icon: "📖" }] },
+      { username: "Bibliophile", books_read: 28, points: 875, badges: [{ name: "Century Club", icon: "💯" }, { name: "Curator", icon: "🔖" }] },
+      { username: "PageTurner", books_read: 23, points: 725, badges: [{ name: "Critic", icon: "⭐" }] },
+      { username: "Bookworm", books_read: 19, points: 600, badges: [{ name: "Bookworm", icon: "🐛" }] },
+      { username: "KnowledgeSeeker", books_read: 15, points: 500, badges: [{ name: "First Book Read", icon: "📚" }] },
+      { username: "WordSmith", books_read: 12, points: 400 },
+      { username: "LitLover", books_read: 10, points: 300 },
+      { username: "ReadingRookie", books_read: 7, points: 200 },
+      { username: "NovelNewbie", books_read: 4, points: 100 }
+    ];
+    
+    // Add levels to mock data
+    const dataWithLevels = addLevelToLeaderboard(mockData);
+    
+    dataWithLevels.forEach((user, index) => {
+      const badges = user.badges || [];
+      const badgesHtml = badges.map(badge => 
+        `<span class="badge-tooltip" data-tooltip="${badge.name}">
+          <span class="badge">${badge.icon}</span>
+        </span>`
+      ).join('');
+      
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>
+          <div class="leaderboard-user">
+            <span class="level-indicator">${user.level.icon}</span>
+            ${user.username}
+            <span class="level-name">${user.level.name}</span>
+          </div>
+        </td>
+        <td>${user.books_read}</td>
+        <td>${user.points}</td>
+        <td>${badgesHtml}</td>
+      `;
+      
+      leaderboardBody.appendChild(row);
+    });
+  }
+
+  // ---- ENHANCED FILTERING UI ----
+  
+  function initializeFilterUI() {
+    // Setup navigation between steps
+    document.getElementById("navLanguage")?.addEventListener("click", () => showFilterStep("Language"));
+    document.getElementById("navType")?.addEventListener("click", () => showFilterStep("Type"));
+    document.getElementById("navCategory")?.addEventListener("click", () => showFilterStep("Category"));
+    document.getElementById("navSubcategory")?.addEventListener("click", () => showFilterStep("Subcategory"));
+    
+    // Setup language selection
+    document.querySelectorAll("#stepLanguage .filter-option").forEach(option => {
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepLanguage .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedLanguage = this.getAttribute("data-language");
+        
+        // Move to next step
+        showFilterStep("Type");
+      });
+    });
+    
+    // Setup type selection (fiction/non-fiction)
+    document.querySelectorAll("#stepType .filter-option").forEach(option => {
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepType .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedType = this.getAttribute("data-type");
+        
+        // Populate categories
+        populateCategoryOptions(window.selectedType);
+        
+        // Move to next step
+        showFilterStep("Category");
+      });
+    });
+    
+    // Apply initial filter if saved
+    try {
+      const savedFilter = JSON.parse(localStorage.getItem("bookFilter") || "{}");
+      if (savedFilter.language) {
+        const languageOption = document.querySelector(
+          `#stepLanguage .filter-option[data-language="${savedFilter.language}"]`);
+        if (languageOption) {
+          languageOption.click();
+        }
+      }
+    } catch (e) {
+      console.error("Error applying saved filter:", e);
+    }
+  }
+  
+  function showFilterStep(step) {
+    // Hide all steps
+    document.querySelectorAll(".filter-step").forEach(el => 
+      el.classList.remove("active"));
+    
+    // Show selected step
+    const stepEl = document.getElementById(`step${step}`);
+    if (stepEl) stepEl.classList.add("active");
+    
+    // Update navigation
+    document.querySelectorAll(".filter-nav-item").forEach(el => 
+      el.classList.remove("active"));
+    
+    const navEl = document.getElementById(`nav${step}`);
+    if (navEl) navEl.classList.add("active");
+  }
+  
+  function populateCategoryOptions(type) {
+    if (!type) return;
+    
+    const categoryOptions = document.getElementById("categoryOptions");
+    if (!categoryOptions) return;
+    
+    // Clear existing options
+    categoryOptions.innerHTML = "";
+    
+    // Get categories based on type
+    const fictionCategories = window.fictionCategories || [];
+    const nonFictionCategories = window.nonFictionCategories || [];
+    const categories = type === "fiction" ? fictionCategories : nonFictionCategories;
+    
+    // Add each category
+    categories.forEach(category => {
+      const option = document.createElement("span");
+      option.className = "filter-option";
+      option.setAttribute("data-category", category);
+      option.textContent = category;
+      
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepCategory .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedCategory = category;
+        
+        // Populate subcategories
+        populateSubcategoryOptions(category);
+        
+        // Move to next step
+        showFilterStep("Subcategory");
+      });
+      
+      categoryOptions.appendChild(option);
+    });
+  }
+  
+  function populateSubcategoryOptions(category) {
+    if (!category) return;
+    
+    const subcategoryOptions = document.getElementById("subcategoryOptions");
+    if (!subcategoryOptions) return;
+    
+    // Clear existing options
+    subcategoryOptions.innerHTML = "";
+    
+    // Add "All" option first
+    const allOption = document.createElement("span");
+    allOption.className = "filter-option selected";
+    allOption.setAttribute("data-subcategory", "all");
+    allOption.textContent = "All";
+    
+    allOption.addEventListener("click", function() {
+      // Reset selected options
+      document.querySelectorAll("#stepSubcategory .filter-option").forEach(opt => 
+        opt.classList.remove("selected"));
+      
+      // Mark this option as selected
+      this.classList.add("selected");
+      
+      // Store selection
+      window.selectedSubcategory = "all";
+      
+      // Apply filter
+      applyAdvancedFilter();
+    });
+    
+    subcategoryOptions.appendChild(allOption);
+    
+    // Get subcategories for this category
+    const subcategoriesByCategory = window.subcategoriesByCategory || {};
+    const subcategories = subcategoriesByCategory[category] || [];
+    
+    subcategories.forEach(subcategory => {
+      const option = document.createElement("span");
+      option.className = "filter-option";
+      option.setAttribute("data-subcategory", subcategory);
+      option.textContent = subcategory;
+      
+      option.addEventListener("click", function() {
+        // Reset selected options
+        document.querySelectorAll("#stepSubcategory .filter-option").forEach(opt => 
+          opt.classList.remove("selected"));
+        
+        // Mark this option as selected
+        this.classList.add("selected");
+        
+        // Store selection
+        window.selectedSubcategory = subcategory;
+        
+        // Apply filter
+        applyAdvancedFilter();
+      });
+      
+      subcategoryOptions.appendChild(option);
+    });
+    
+    // If no subcategories, apply filter with "all"
+    if (subcategories.length === 0) {
+      window.selectedSubcategory = "all";
+      applyAdvancedFilter();
+    }
+  }
+  
+  function applyAdvancedFilter() {
+    let visibleCount = 0;
+    
+    document.querySelectorAll("#postList .post-item").forEach(item => {
+      const language = (item.getAttribute("data-language") || "").toLowerCase();
+      const fiction = item.getAttribute("data-fiction");
+      const category = (item.getAttribute("data-category") || "").toLowerCase();
+      const subcategories = (item.getAttribute("data-subcategories") || "").toLowerCase();
+      
+      let shouldShow = true;
+      
+      if (window.selectedLanguage && language !== window.selectedLanguage.toLowerCase()) {
+        shouldShow = false;
+      }
+      
+      if (shouldShow && window.selectedType && fiction !== window.selectedType) {
+        shouldShow = false;
+      }
+      
+      if (shouldShow && window.selectedCategory && category !== window.selectedCategory.toLowerCase()) {
+        shouldShow = false;
+      }
+      
+      if (shouldShow && window.selectedSubcategory && window.selectedSubcategory !== "all") {
+        if (!subcategories.includes(window.selectedSubcategory.toLowerCase())) {
+          shouldShow = false;
+        }
+      }
+      
+      item.style.display = shouldShow ? "" : "none";
+      if (shouldShow) visibleCount++;
+    });
+    
+    // Show/hide no results message
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+    
+    // Save filter preferences
+    try {
+      const filter = {
+        language: window.selectedLanguage,
+        type: window.selectedType,
+        category: window.selectedCategory,
+        subcategory: window.selectedSubcategory
+      };
+      
+      localStorage.setItem("bookFilter", JSON.stringify(filter));
+    } catch (e) {
+      console.error("Error saving filter preferences:", e);
+    }
+  }
+  
+  // Execute when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFeatures);
+  } else {
+    initFeatures();
+  }
+})();
+</script>
