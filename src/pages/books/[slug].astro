@@ -1,3 +1,80 @@
+---
+// Your Astro imports and frontmatter here
+// e.g., import Layout from '../../layouts/Layout.astro';
+// import { getBlogDetail } from '../../lib/api';
+
+// Define reader levels
+const readerLevels = [
+  { name: "Novice Reader", icon: "📚", minPoints: 0 },
+  { name: "Book Explorer", icon: "🔍", minPoints: 50 },
+  { name: "Bookworm", icon: "🐛", minPoints: 100 },
+  { name: "Avid Reader", icon: "📖", minPoints: 200 },
+  { name: "Scholar", icon: "🧠", minPoints: 350 },
+  { name: "Bibliophile", icon: "🤓", minPoints: 500 },
+  { name: "Literary Critic", icon: "⭐", minPoints: 750 },
+  { name: "Book Master", icon: "🏆", minPoints: 1000 },
+  { name: "Sage Reader", icon: "🧙", minPoints: 1500 },
+  { name: "Reading Legend", icon: "👑", minPoints: 2000 }
+];
+
+// Get the slug from the URL params
+const { slug } = Astro.params;
+
+// Your other fetching logic here
+// const book = await getBlogDetail(slug);
+
+// Function to get user level based on points
+function getUserLevel(points) {
+  // Find the highest level that the user qualifies for
+  let currentLevel = readerLevels[0]; // Default to first level
+  
+  for (let i = readerLevels.length - 1; i >= 0; i--) {
+    if (points >= readerLevels[i].minPoints) {
+      currentLevel = readerLevels[i];
+      break;
+    }
+  }
+  
+  return currentLevel;
+}
+---
+
+<Layout title="Book Detail">
+  <!-- Your HTML content here -->
+  <div class="book-detail">
+    <!-- Book information -->
+    <h1>{book.title}</h1>
+    <!-- Other book details -->
+    
+    <!-- User profile section - if applicable -->
+    <div id="userProfile" class="user-profile">
+      <div class="user-level">
+        <span id="currentLevelIcon"></span>
+        <span id="currentLevelName"></span>
+      </div>
+      <div class="user-stats">
+        <div>Points: <span id="userPointsValue">0</span></div>
+        <div>Books Read: <span id="userBooksRead">0</span></div>
+        <div class="progress-container">
+          <div id="userProgressBar" class="progress-bar"></div>
+        </div>
+      </div>
+      <div id="userBadges" class="badges-container"></div>
+    </div>
+    
+    <!-- Book actions -->
+    <div class="book-actions">
+      <button class="read-btn" data-slug={slug}>Mark Read</button>
+      <!-- Other actions -->
+    </div>
+  </div>
+</Layout>
+
+<script>
+// Client-side JavaScript - include your book features JS
+// Or use an import if you have it as a separate file
+// import '../scripts/bookFeatures.js';
+
 // Immediately executed function to avoid global scope pollution
 (function() {
   // Define reader levels globally within our IIFE
@@ -23,7 +100,6 @@
   
   function setupEventListeners() {
     // Add event listeners as needed
-    // Set up the basic user interface features...
     document.querySelectorAll(".read-btn").forEach(btn => {
       btn.addEventListener("click", function(e) {
         e.preventDefault();
@@ -226,3 +302,4 @@
     initFeatures();
   }
 })();
+</script>
