@@ -61,3 +61,6 @@
 2025-04-07 14:19:17,013 - INFO - Saved 2 processed books
 2025-04-07 14:19:17,014 - INFO - 127.0.0.1 - - [07/Apr/2025 14:19:17] "GET /api/book/summary?title=Learning%20Python&authors=Mark%20Lutz&bookId=OL2784125W&source=Open%20Library HTTP/1.1" 200 -
 2025-04-07 14:29:05,631 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 14:29:06,061 - INFO -  * Restarting with stat
+2025-04-07 14:29:09,284 - WARNING -  * Debugger is active!
+2025-04-07 14:29:09,295 - INFO -  * Debugger PIN: 110-726-745
