@@ -2,17 +2,11 @@
 // src/pages/books/[slug].astro
 import { useTranslations } from "astro-i18n";
 import BlogPost from '../../layouts/BlogPost.astro';
-import BookSummary from '../../components/BookSummary.astro';  // Added .astro extension
+import BookSummary from '../../components/BookSummary.jsx';
 
 const t = useTranslations();
 const { slug } = Astro.params;
 const lang = Astro.params.lang || 'en';
----
-
-<BlogPost>
-  <h1>{t('book.title', { slug })}</h1>
-  <BookSummary slug={slug} lang={lang} />
-</BlogPost>
 
 // Define reader levels
 const readerLevels = [
@@ -138,7 +132,7 @@ const bookData = await getBookData(slug, lang);
         </div>
       </div>
     )}
-   </main>
+  </main>
 </BlogPost>
 
 <style>
