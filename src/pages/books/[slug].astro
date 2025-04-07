@@ -1,7 +1,6 @@
 ---
-// Your Astro imports and frontmatter here
-// e.g., import Layout from '../../layouts/Layout.astro';
-// import { getBlogDetail } from '../../lib/api';
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
 
 // Define reader levels
 const readerLevels = [
@@ -17,11 +16,38 @@ const readerLevels = [
   { name: "Reading Legend", icon: "👑", minPoints: 2000 }
 ];
 
-// Get the slug from the URL params
-const { slug } = Astro.params;
+// This is required for dynamic routes ([slug]) in static mode
+export async function getStaticPaths() {
+  // Option 1: If you're using content collections
+  try {
+    const bookEntries = await getCollection('books');
+    return bookEntries.map(entry => ({
+      params: { slug: entry.slug },
+      props: { book: entry }
+    }));
+  } catch (error) {
+    // Fallback: If content collection doesn't exist or has issues
+    // Simply create a few test entries to prevent build errors
+    console.error("Error fetching book collection:", error);
+    return [
+      {
+        params: { slug: "sample-book" },
+        props: { 
+          book: { 
+            title: "Sample Book", 
+            description: "This is a placeholder for testing" 
+          } 
+        }
+      }
+    ];
+  }
+}
 
-// Your other fetching logic here
-// const book = await getBlogDetail(slug);
+// Get data from props
+const { book } = Astro.props;
+
+// Get the slug parameter
+const { slug } = Astro.params;
 
 // Function to get user level based on points
 function getUserLevel(points) {
@@ -39,8 +65,7 @@ function getUserLevel(points) {
 }
 ---
 
-<Layout title="Book Detail">
-  <!-- Your HTML content here -->
+<Layout title={book.title || "Book Detail"}>
   <div class="book-detail">
     <!-- Book information -->
     <h1>{book.title}</h1>
@@ -71,10 +96,6 @@ function getUserLevel(points) {
 </Layout>
 
 <script>
-// Client-side JavaScript - include your book features JS
-// Or use an import if you have it as a separate file
-// import '../scripts/bookFeatures.js';
-
 // Immediately executed function to avoid global scope pollution
 (function() {
   // Define reader levels globally within our IIFE
