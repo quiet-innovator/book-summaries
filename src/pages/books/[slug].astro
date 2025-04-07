@@ -1,7 +1,7 @@
-// src/pages/[lang]/book/[slug].astro
+// src/pages/books/[slug].astro
 import { useTranslations } from "astro-i18n";
-import BlogPost from '../../../layouts/BlogPost.astro';
-import BookSummary from '../../../components/BookSummary';
+import BlogPost from '../../layouts/BlogPost.astro';
+import BookSummary from '../../components/BookSummary';
 
 const t = useTranslations();
 const { slug } = Astro.params;
