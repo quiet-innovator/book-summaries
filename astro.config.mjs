@@ -4,6 +4,7 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import icons from 'astro-icon';
 import react from '@astrojs/react';
+import astroI18n from 'astro-i18n';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,7 +15,8 @@ export default defineConfig({
     mdx(), 
     sitemap(), 
     icons(),
-    react() // Added React integration
+    react(), // React integration
+    astroI18n() // Adding astro-i18n integration
   ],
   content: {
     // ✅ register the content config!
