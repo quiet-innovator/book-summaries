@@ -6,10 +6,6 @@ import icons from 'astro-icon';
 import react from '@astrojs/react';
 import dotenv from 'dotenv';
 
-// Import astro-i18n using the suggested way
-import pkg from 'astro-i18n';
-const astroI18n = pkg.default || pkg;
-
 dotenv.config();
 
 export default defineConfig({
@@ -18,8 +14,7 @@ export default defineConfig({
     mdx(), 
     sitemap(), 
     icons(),
-    react(), // React integration
-    astroI18n() // Using the correctly imported function
+    react() // Keep only the React integration for now
   ],
   content: {
     // ✅ register the content config!

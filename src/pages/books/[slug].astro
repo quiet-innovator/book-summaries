@@ -1,10 +1,21 @@
 ---
 // src/pages/books/[slug].astro
-import { useTranslations } from "astro-i18n";
+// import { useTranslations } from "astro-i18n"; // Comment this out temporarily
 import BlogPost from '../../layouts/BlogPost.astro';
 import BookSummary from '../../components/BookSummary.jsx';
 
-const t = useTranslations();
+// Temporary replacement for useTranslations
+const t = (key, vars = {}) => {
+  // Simple fallback function
+  if (key === 'common.bookNotFound') return 'Book Not Found';
+  if (key === 'common.bookNotFoundMessage') return 'Sorry, we could not find the book you are looking for.';
+  if (key === 'common.searchBooks') return 'Search Books';
+  if (key === 'common.addBookSummary') return 'Add Book Summary';
+  if (key === 'common.readerProgress') return 'Reader Progress';
+  if (key === 'book.title') return `Book: ${vars.slug || ''}`;
+  return key; // Fallback to the key itself
+};
+
 const { slug } = Astro.params;
 const lang = Astro.params.lang || 'en';
 
