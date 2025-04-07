@@ -1,17 +1,33 @@
 ---
 interface Props {
-	date: Date;
+	date?: Date | string | undefined;
 }
 
 const { date } = Astro.props;
+
+// Safely handle date formatting
+let formattedDate = '';
+let localDate = '';
+if (date) {
+    try {
+        // Convert to Date object if it's a string
+        const dateObj = date instanceof Date ? date : new Date(date);
+        formattedDate = dateObj.toISOString();
+        localDate = dateObj.toLocaleDateString('en-us', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
+    } catch (e) {
+        console.error('Invalid date format', e);
+    }
+}
 ---
 
-<time datetime={date.toISOString()}>
-	{
-		date.toLocaleDateString('en-us', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-		})
-	}
-</time>
+{formattedDate ? (
+    <time datetime={formattedDate}>
+        {localDate}
+    </time>
+) : (
+    <span class="no-date">No date available</span>
+)}

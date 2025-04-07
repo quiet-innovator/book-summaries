@@ -67,12 +67,14 @@ async function getBookData(slug, lang) {
       };
     }
     
-    // If not found locally, try fetching from API
-    const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
-    const apiLang = lang === 'en' ? 'english' : lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi';
-    
-    const response = await fetch(`${apiUrl}/api/book/summary?slug=${slug}&language=${apiLang}`);
-    
+// If not found locally, try fetching from API 
+// Avoid making API calls during build time
+const isBrowser = typeof window !== 'undefined';
+const apiUrl = isBrowser 
+  ? (import.meta.env.PUBLIC_API_URL || 'http://localhost:8000')
+  : 'https://api.example.com'; // Use a placeholder during build
+const apiLang = lang === 'en' ? 'english' : lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi';
+
     if (response.ok) {
       const data = await response.json();
       return {
