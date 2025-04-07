@@ -16,6 +16,15 @@ const t = (key, vars = {}) => {
   return key; // Fallback to the key itself
 };
 
+// Add this function to generate the static paths
+export async function getStaticPaths() {
+  // You can return all possible slug values here
+  // For now, let's return a placeholder that will be replaced at runtime
+  return [
+    { params: { slug: 'placeholder' } }
+  ];
+}
+
 const { slug } = Astro.params;
 const lang = Astro.params.lang || 'en';
 
