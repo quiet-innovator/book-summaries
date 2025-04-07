@@ -1,27 +1,26 @@
 ---
 // src/components/HeaderLink.astro
-// This component handles the active state of navigation links
-
 export interface Props {
   href: string;
 }
 
 const { href } = Astro.props;
-const isActive = Astro.url.pathname === href || 
-                (href !== '/' && Astro.url.pathname.startsWith(href));
+
+// This gets the current URL path
+const { pathname } = Astro.url;
+
+// Normalize paths by removing trailing slashes for comparison
+const normalizedPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+const normalizedHref = href.endsWith('/') ? href.slice(0, -1) : href;
+
+// Simple exact match for active state
+const isActive = 
+  normalizedHref === '/' 
+    ? normalizedPathname === '' || normalizedPathname === '/' 
+    : normalizedPathname === normalizedHref;
+
 ---
 
 <a href={href} class:list={[{ active: isActive }]}>
   <slot />
 </a>
-
-<style>
-  a {
-    display: inline-block;
-    text-decoration: none;
-  }
-  a.active {
-    font-weight: bolder;
-    text-decoration: underline;
-  }
-</style>
