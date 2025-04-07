@@ -9,7 +9,7 @@ import FormattedDate from '../../components/FormattedDate.astro';
 let posts = await getCollection('books');
 
 const SUPABASE_URL = "https://anvbsqdzosqyqggrzsxq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudmJzcWR6b3NxeXFnZ3J6c3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MzA5ODgsImV4cCI6MjA1OTMwNjk4OH0.a12c2LIuIH_f2GFF1BUy823EqY3jm0mxJWyk1hkT0xk";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
 
 async function fetchViews(slug) {
   try {
@@ -49,8 +49,6 @@ async function fetchRatings(slug) {
   }
 }
 
-// No need to fetch leaderboard data during build, we'll handle it on client-side
-
 posts = await Promise.all(posts.map(async (post) => {
   const views = await fetchViews(post.id);
   const ratings = await fetchRatings(post.id);
@@ -66,25 +64,21 @@ const allCategories = [...new Set(posts.map(p => p.data.category).filter(Boolean
 const allSubcategories = [...new Set(posts.flatMap(p => p.data.subcategories || []).filter(Boolean))];
 const allLanguages = [...new Set(posts.map(p => p.data.language || 'English').filter(Boolean))];
 
-// Group posts by fiction/non-fiction
 const fictionPosts = posts.filter(p => p.data.isFiction === true);
 const nonFictionPosts = posts.filter(p => p.data.isFiction === false || p.data.isFiction === undefined);
 
-// Group categories by fiction/non-fiction
 const fictionCategories = [...new Set(fictionPosts.map(p => p.data.category).filter(Boolean))];
 const nonFictionCategories = [...new Set(nonFictionPosts.map(p => p.data.category).filter(Boolean))];
 
-// Get subcategories by category
 const subcategoriesByCategory = {};
 allCategories.forEach(category => {
   subcategoriesByCategory[category] = [...new Set(
     posts.filter(p => p.data.category === category)
-        .flatMap(p => p.data.subcategories || [])
-        .filter(Boolean)
+         .flatMap(p => p.data.subcategories || [])
+         .filter(Boolean)
   )];
 });
 
-// Get most popular books for meta description enhancement
 const popularBooks = [...posts].sort((a, b) => (b.data.views || 0) - (a.data.views || 0)).slice(0, 3);
 const popularTitles = popularBooks.map(book => book.data.title).join(", ");
 const enhancedDescription = `${SITE_DESCRIPTION} Featuring summaries of popular books including ${popularTitles} and more.`;
