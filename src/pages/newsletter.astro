@@ -1,0 +1,217 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <BaseHead title="Newsletter | Minute Reads" description="Get weekly book summaries delivered to your inbox" />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="newsletter-container">
+        <div class="newsletter-content">
+          <h1>Weekly Book Summaries</h1>
+          
+          <p class="newsletter-description">
+            Get the top book summaries of the week straight to your mailbox!
+          </p>
+          
+          <div class="newsletter-card">
+            <div class="newsletter-benefits">
+              <div class="benefit">
+                <div class="icon-container book-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+                    <path d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zm-1 14H4V6h16v12zM6 8h12v2H6V8zm0 4h12v2H6v-2z"/>
+                  </svg>
+                </div>
+                <p>Curated summaries of bestsellers</p>
+              </div>
+              <div class="benefit">
+                <div class="icon-container clock-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm1-8h4v2h-6V7h2v5z"/>
+                  </svg>
+                </div>
+                <p>Quick reads that respect your time</p>
+              </div>
+              <div class="benefit">
+                <div class="icon-container bulb-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+                    <path d="M11 18H7.941c-.297-1.273-1.637-2.314-2.187-3a8 8 0 1 1 12.49.002c-.55.685-1.888 1.726-2.185 2.998H13v-5h-2v5zm5 2v1a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-1h8z"/>
+                  </svg>
+                </div>
+                <p>Key insights and actionable takeaways</p>
+              </div>
+            </div>
+          </div>
+          
+          <a href="https://minutereads.substack.com/" target="_blank" style="display: inline-block; background-color: #1e50e2; color: white; font-size: 1.25rem; font-weight: 600; padding: 1rem 2.5rem; border-radius: 50px; text-decoration: none; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(30, 80, 226, 0.3);">
+            Subscribe for free now
+          </a>
+          
+          <p class="guarantee">No spam, unsubscribe anytime.</p>
+        </div>
+      </div>
+    </main>
+    <Footer />
+    
+    <style>
+      main {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 1rem;
+      }
+      
+      .newsletter-container {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 3rem 2rem;
+        border-radius: 16px;
+        background-color: #f8f9fa;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        text-align: center;
+      }
+      
+      .newsletter-content h1 {
+        font-size: 2.75rem;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+        font-weight: 700;
+      }
+      
+      .newsletter-description {
+        font-size: 1.5rem;
+        line-height: 1.6;
+        margin-bottom: 3rem;
+        color: #3a4a5c;
+        font-weight: 500;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      
+      .newsletter-card {
+        background-color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2.5rem;
+      }
+      
+      .newsletter-benefits {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2.5rem;
+      }
+      
+      .benefit {
+        flex: 1;
+        min-width: 200px;
+        transition: transform 0.2s;
+      }
+      
+      .benefit:hover {
+        transform: translateY(-5px);
+      }
+      
+      .icon-container {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f4ff;
+        border-radius: 50%;
+        padding: 16px;
+      }
+      
+      .book-icon {
+        color: #1e50e2;
+      }
+      
+      .clock-icon {
+        color: #1e50e2;
+      }
+      
+      .bulb-icon {
+        color: #1e50e2;
+      }
+      
+      .benefit p {
+        font-size: 1.15rem;
+        line-height: 1.5;
+        font-weight: 500;
+        color: #445566;
+      }
+      
+      .guarantee {
+        font-size: 0.95rem;
+        color: #6c757d;
+      }
+      
+      /* Dark mode compatibility */
+      :global(body.dark) .newsletter-container {
+        background-color: #1e1e1e;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+      
+      :global(body.dark) .newsletter-content h1 {
+        color: #ffffff;
+      }
+      
+      :global(body.dark) .newsletter-description {
+        color: #e0e0e0;
+      }
+      
+      :global(body.dark) .newsletter-card {
+        background-color: #2d2d2d;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+      
+      :global(body.dark) .benefit p {
+        color: #d0d0d0;
+      }
+      
+      :global(body.dark) .guarantee {
+        color: #a0a0a0;
+      }
+      
+      :global(body.dark) .icon-container {
+        background-color: #3a3a3a;
+      }
+      
+      @media (max-width: 768px) {
+        .newsletter-container {
+          padding: 2rem 1.5rem;
+          margin: 2rem auto;
+        }
+        
+        .newsletter-content h1 {
+          font-size: 2rem;
+        }
+        
+        .newsletter-description {
+          font-size: 1.2rem;
+        }
+        
+        .newsletter-benefits {
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        
+        .icon-container {
+          width: 56px;
+          height: 56px;
+        }
+      }
+    </style>
+  </body>
+</html>

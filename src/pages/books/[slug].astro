@@ -13,17 +13,17 @@ const readerLevels = [
   { name: "Reading Legend", icon: "👑", minPoints: 2000 }
 ];
 
-// Mock book data for static generation
-const mockBooks = [
-  { slug: "atomic-habits", title: "Atomic Habits", description: "An Easy & Proven Way to Build Good Habits & Break Bad Ones" },
-  { slug: "deep-work", title: "Deep Work", description: "Rules for Focused Success in a Distracted World" },
-  { slug: "thinking-fast-and-slow", title: "Thinking, Fast and Slow", description: "A groundbreaking exploration of how we think" },
-  { slug: "sapiens", title: "Sapiens", description: "A Brief History of Humankind" },
-  { slug: "the-psychology-of-money", title: "The Psychology of Money", description: "Timeless lessons on wealth, greed, and happiness" }
-];
-
-// Required for static generation
+// Required for static generation with mock data
 export function getStaticPaths() {
+  // Define mock books directly inside the function to avoid scope issues
+  const mockBooks = [
+    { slug: "atomic-habits", title: "Atomic Habits", description: "An Easy & Proven Way to Build Good Habits & Break Bad Ones" },
+    { slug: "deep-work", title: "Deep Work", description: "Rules for Focused Success in a Distracted World" },
+    { slug: "thinking-fast-and-slow", title: "Thinking, Fast and Slow", description: "A groundbreaking exploration of how we think" },
+    { slug: "sapiens", title: "Sapiens", description: "A Brief History of Humankind" },
+    { slug: "the-psychology-of-money", title: "The Psychology of Money", description: "Timeless lessons on wealth, greed, and happiness" }
+  ];
+  
   return mockBooks.map(book => ({
     params: { slug: book.slug },
     props: { book }
