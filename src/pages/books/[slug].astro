@@ -1,11 +1,18 @@
+---
 // src/pages/books/[slug].astro
 import { useTranslations } from "astro-i18n";
 import BlogPost from '../../layouts/BlogPost.astro';
-import BookSummary from '../../components/BookSummary';
+import BookSummary from '../../components/BookSummary.astro';  // Added .astro extension
 
 const t = useTranslations();
 const { slug } = Astro.params;
 const lang = Astro.params.lang || 'en';
+---
+
+<BlogPost>
+  <h1>{t('book.title', { slug })}</h1>
+  <BookSummary slug={slug} lang={lang} />
+</BlogPost>
 
 // Define reader levels
 const readerLevels = [
@@ -93,7 +100,7 @@ function getUserLevel(points) {
 const bookData = await getBookData(slug, lang);
 ---
 
-<Layout title={bookData ? bookData.title : t('common.bookNotFound')}>
+<BlogPost title={bookData ? bookData.title : t('common.bookNotFound')}>
   <main>
     {bookData ? (
       <div class="book-container">
@@ -131,8 +138,8 @@ const bookData = await getBookData(slug, lang);
         </div>
       </div>
     )}
-  </main>
-</Layout>
+   </main>
+</BlogPost>
 
 <style>
   .book-container {
