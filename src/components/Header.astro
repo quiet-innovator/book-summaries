@@ -1,5 +1,4 @@
 ---
-// src/components/Header.astro
 import HeaderLink from './HeaderLink.astro';
 import { SITE_TITLE } from '../consts';
 ---
@@ -23,11 +22,10 @@ import { SITE_TITLE } from '../consts';
       <HeaderLink href="/">Books</HeaderLink>
       <HeaderLink href="/newsletter">Newsletter</HeaderLink>
       <HeaderLink href="/about">About</HeaderLink>
-      <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌓</button>
     </div>
 
     <div class="social-links">
-      <!-- Buy Me a Coffee icon (now larger) -->
+      <!-- Social icon links remain unchanged -->
       <a
         href="https://buymeacoffee.com/minutereads"
         target="_blank"
@@ -40,13 +38,9 @@ import { SITE_TITLE } from '../consts';
           class="coffee-icon"
         />
       </a>
-
-      <!-- Copy link -->
       <a href="#" onclick="copySiteLink()" title="Copy Site Link">
         <img src="https://api.iconify.design/lucide/link.svg" alt="Copy link" />
       </a>
-
-      <!-- Other social icons -->
       <a href="https://twitter.com/minutereads" target="_blank" rel="noopener" title="Twitter">
         <img src="https://api.iconify.design/lucide/twitter.svg" alt="Twitter" />
       </a>
@@ -82,10 +76,12 @@ import { SITE_TITLE } from '../consts';
     background: white;
     box-shadow: 0 2px 8px rgba(var(--black), 5%);
   }
+
   h2 {
     margin: 0;
     font-size: 1em;
   }
+
   h2 a,
   h2 a.active {
     text-decoration: none;
@@ -93,39 +89,58 @@ import { SITE_TITLE } from '../consts';
     font-size: 1.25rem;
     color: var(--black);
   }
+
   nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
+
+  /* Generic rules for nav links (used elsewhere if needed) */
   nav a {
-    padding: 1em 0.5em;
-    color: var(--black);
-    border-bottom: 4px solid transparent;
     text-decoration: none;
+    color: var(--black);
   }
-  nav a.active {
-    border-bottom-color: var(--accent);
+
+  /* Specific styles for header internal links */
+  .internal-links a {
+    display: inline-block;
+    text-decoration: none !important;
+    border-bottom: none !important;
+    color: var(--black);
+    font-size: 1rem;
+    padding: 0.5rem 1rem;  /* Adjusts clickable area with some margin on top & bottom */
+    margin: 0.25rem 0;      /* Provides a little extra spacing vertically */
   }
+
+  .internal-links a:hover {
+    /* No underline or border change on hover */
+    background: none;
+  }
+
   .internal-links {
     display: flex;
     align-items: center;
     gap: 1rem;
   }
+
   .social-links {
     display: flex;
     align-items: center;
     gap: 0.5rem;
   }
+
   .social-links img {
     width: 20px;
     height: 20px;
   }
+
   /* Make the coffee icon a bit larger */
   .social-links img.coffee-icon {
     width: 24px;
     height: 24px;
   }
+
   #theme-toggle {
     background: none;
     border: none;
@@ -133,6 +148,7 @@ import { SITE_TITLE } from '../consts';
     font-size: 1.3rem;
     padding: 0.25rem;
   }
+
   #copy-toast {
     position: fixed;
     bottom: 20px;
@@ -187,3 +203,4 @@ import { SITE_TITLE } from '../consts';
     setTimeout(() => toast.classList.remove("show"), 2000);
   };
 </script>
+	
