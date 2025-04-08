@@ -2,8 +2,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "routes": [
-    { "src": "/about", "dest": "/about" },
-    { "src": "/newsletter", "dest": "/newsletter" },
+    { "src": "/about.html", "dest": "/about" },
+    { "src": "/newsletter.html", "dest": "/newsletter" },
     { "handle": "filesystem" }
   ]
 }
