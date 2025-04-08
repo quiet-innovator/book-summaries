@@ -1,20 +1,9 @@
 {
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
   "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "build": {
-    "env": {
-      "NODE_OPTIONS": "--max-old-space-size=4096"
-    }
-  }
+    { "src": "/about", "dest": "/about" },
+    { "src": "/newsletter", "dest": "/newsletter" },
+    { "handle": "filesystem" }
+  ]
 }
