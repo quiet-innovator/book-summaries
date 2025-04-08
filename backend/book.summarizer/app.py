@@ -5,10 +5,13 @@ from datetime import datetime
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env
-load_dotenv()
+# Build the path to the .env file: go up three levels from the current file's directory
+env_path = Path(__file__).parent.parent.parent / ".env"
+print("Loading .env from:", env_path.resolve())
+load_dotenv(dotenv_path=env_path)
 
 # Configure logging
 logging.basicConfig(
@@ -23,19 +26,21 @@ logger = logging.getLogger(__name__)
 
 # API keys loaded from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
+print("Loaded OPENAI_API_KEY:", repr(OPENAI_API_KEY))
 
-# Initialize OpenAI client (AFTER getting the API key)
-from openai import OpenAI
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Initialize OpenAI client using the standard method
+import openai
+openai.api_key = OPENAI_API_KEY
 
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable cross-origin requests
 
 # Constants
-OUTPUT_DIR = "../../public/summaries"  # Path relative to the backend folder
+# Updated OUTPUT_DIR to point to your website's content folder for book summaries.
+OUTPUT_DIR = "C:/Users/alime/book-summaries/src/content/books"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
 def generate_amazon_link(title, authors):
     """Generate Amazon affiliate link"""
@@ -86,7 +91,7 @@ def format_summary(title, authors, description, gpt_summary, language='english')
     summary_content = f"""---
 title: "{title}"
 author: "{authors}"
-date: "{datetime.now().strftime('%Y-%m-%d')}"
+pubDate: "{datetime.now().strftime('%Y-%m-%d')}"
 description: "{description or 'A comprehensive book summary'}"
 language: "{language}"
 amazonLink: "{amazon_link}"
@@ -171,11 +176,8 @@ class BookService:
             books = []
             for item in data['items']:
                 volume_info = item.get('volumeInfo', {})
-                
-                # Skip books without necessary data
                 if not volume_info.get('title'):
                     continue
-                    
                 book = {
                     'source': 'Google Books',
                     'id': item.get('id'),
@@ -191,7 +193,6 @@ class BookService:
                     'thumbnailUrl': volume_info.get('imageLinks', {}).get('thumbnail', '')
                 }
                 books.append(book)
-            
             return books
         except Exception as e:
             logger.error(f"Error searching Google Books: {e}")
@@ -212,17 +213,13 @@ class BookService:
                 
             books = []
             for doc in data['docs']:
-                # Create cover URL if cover_i exists
                 cover_url = ''
                 if doc.get('cover_i'):
                     cover_url = f"https://covers.openlibrary.org/b/id/{doc['cover_i']}-M.jpg"
-                
-                # Extract Work ID if available
                 work_id = None
                 if doc.get('key'):
                     if doc.get('key').startswith('/works/'):
                         work_id = doc.get('key').split('/')[-1]
-                
                 book = {
                     'source': 'Open Library',
                     'id': doc.get('key', '').split('/')[-1] if doc.get('key') else '',
@@ -230,13 +227,12 @@ class BookService:
                     'title': doc.get('title', 'Unknown'),
                     'authors': doc.get('author_name', ['Unknown']),
                     'publishedDate': str(doc.get('first_publish_year', '')),
-                    'description': '',  # Open Library search doesn't return descriptions
+                    'description': '',
                     'pageCount': doc.get('number_of_pages_median'),
                     'categories': doc.get('subject', []),
                     'thumbnailUrl': cover_url
                 }
                 books.append(book)
-            
             return books
         except Exception as e:
             logger.error(f"Error searching Open Library: {e}")
@@ -245,26 +241,19 @@ class BookService:
     def get_book_details_open_library(self, book_id, is_work=True):
         """Get detailed book information from Open Library"""
         try:
-            # Determine if this is a work ID or edition ID
             if is_work:
                 url = f"https://openlibrary.org/works/{book_id}.json"
             else:
                 url = f"https://openlibrary.org/books/{book_id}.json"
-            
             response = requests.get(url)
             if response.status_code != 200:
                 logger.warning(f"Open Library API returned {response.status_code} for {url}")
                 return None
-            
             data = response.json()
-            
-            # Get cover URL if covers exists
             cover_url = ''
             if data.get('covers', []):
                 cover_id = data['covers'][0]
                 cover_url = f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg"
-            
-            # Get author information
             authors = []
             if 'authors' in data:
                 for author_ref in data['authors']:
@@ -278,7 +267,6 @@ class BookService:
                         except:
                             authors.append('Unknown')
                     elif isinstance(author_ref, dict) and 'key' in author_ref:
-                        # Different structure for edition authors
                         author_key = author_ref['key'].split('/')[-1]
                         try:
                             author_response = requests.get(f"https://openlibrary.org/authors/{author_key}.json")
@@ -287,15 +275,12 @@ class BookService:
                                 authors.append(author_data.get('name', 'Unknown'))
                         except:
                             authors.append('Unknown')
-            
-            # Get description - handle both string and object format
             description = ""
             if 'description' in data:
                 if isinstance(data['description'], str):
                     description = data['description']
                 elif isinstance(data['description'], dict) and 'value' in data['description']:
                     description = data['description']['value']
-            
             book_details = {
                 'source': 'Open Library',
                 'id': book_id,
@@ -306,8 +291,6 @@ class BookService:
                 'subjects': data.get('subjects', []),
                 'thumbnailUrl': cover_url
             }
-            
-            # Additional edition-specific fields
             if not is_work:
                 book_details.update({
                     'isbn_10': data.get('isbn_10', []),
@@ -317,7 +300,6 @@ class BookService:
                     'number_of_pages': data.get('number_of_pages'),
                     'physical_format': data.get('physical_format', '')
                 })
-            
             return book_details
         except Exception as e:
             logger.error(f"Error getting Open Library details for {book_id}: {e}")
@@ -331,10 +313,8 @@ class BookService:
             if response.status_code != 200:
                 logger.warning(f"Google Books API returned {response.status_code} for {url}")
                 return None
-            
             data = response.json()
             volume_info = data.get('volumeInfo', {})
-            
             book_details = {
                 'source': 'Google Books',
                 'id': book_id,
@@ -350,7 +330,6 @@ class BookService:
                 'language': volume_info.get('language', ''),
                 'thumbnailUrl': volume_info.get('imageLinks', {}).get('thumbnail', '')
             }
-            
             return book_details
         except Exception as e:
             logger.error(f"Error getting Google Books details for {book_id}: {e}")
@@ -365,39 +344,30 @@ class BookService:
         else:
             logger.warning(f"Unknown source: {source}")
             return None
-    
+
 def get_books_by_category(self, category_code, page=1, limit=12):
     """Get books by category from Google Books API"""
     try:
         offset = (page - 1) * limit
         query = f"subject:{category_code}"
         url = f"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults={limit}&startIndex={offset}&orderBy=relevance&key={GOOGLE_BOOKS_API_KEY}"
-        
         logger.info(f"Attempting to fetch books with URL: {url}")
-        
         response = requests.get(url)
         logger.info(f"Response status code: {response.status_code}")
-        
         if response.status_code != 200:
             logger.error(f"Google Books API returned {response.status_code}")
             logger.error(f"Response content: {response.text}")
             return {"results": [], "hasMore": False, "totalCount": 0, "page": page}
-        
         data = response.json()
         logger.info(f"Total items found: {data.get('totalItems', 0)}")
-        
         total_items = data.get('totalItems', 0)
-        
         books = []
         if 'items' in data:
             logger.info(f"Number of items in response: {len(data['items'])}")
             for item in data['items']:
                 volume_info = item.get('volumeInfo', {})
-                
-                # Skip items missing essential info
                 if not volume_info.get('title'):
                     continue
-                    
                 book = {
                     'id': item.get('id'),
                     'title': volume_info.get('title', 'Unknown'),
@@ -410,19 +380,12 @@ def get_books_by_category(self, category_code, page=1, limit=12):
                     'ratingsCount': volume_info.get('ratingsCount', 0),
                     'thumbnailUrl': volume_info.get('imageLinks', {}).get('thumbnail', '')
                 }
-                
-                # Check if we already have a summary for this book
                 book['hasSummary'] = book['id'] in self.processed_books
-                
                 books.append(book)
         else:
             logger.warning("No 'items' found in the response")
-        
-        # Determine if there are more books to load
         has_more = (offset + limit) < total_items
-        
         logger.info(f"Returning {len(books)} books, hasMore: {has_more}")
-        
         return {
             "results": books,
             "hasMore": has_more,
@@ -437,21 +400,17 @@ def get_books_by_category(self, category_code, page=1, limit=12):
 book_service = BookService()
 
 # API Endpoints
+
 @app.route('/api/book/search', methods=['GET'])
 def search_books_api():
     """Search for books using both Google Books and Open Library APIs"""
     query = request.args.get('query', '')
     max_results = int(request.args.get('limit', 10))
-    
     if not query:
         return jsonify({"error": "No search query provided"}), 400
-    
     google_books = book_service.search_google_books(query, max_results // 2)
     open_library_books = book_service.search_open_library(query, max_results // 2)
-    
-    # Combine results
     results = google_books + open_library_books
-    
     return jsonify({
         "query": query,
         "results": results
@@ -462,18 +421,12 @@ def get_book_details_api():
     """Get detailed information about a specific book"""
     book_id = request.args.get('id')
     source = request.args.get('source')
-    
     if not book_id or not source:
         return jsonify({"error": "Book ID and source are required"}), 400
-    
-    # Determine if this is a work ID for Open Library
     is_work = request.args.get('is_work', 'true').lower() == 'true'
-    
     book_details = book_service.get_book_details(source, book_id, is_work)
-    
     if book_details is None:
         return jsonify({"error": "Book not found"}), 404
-    
     return jsonify(book_details)
 
 @app.route('/api/book/summary', methods=['GET'])
@@ -483,32 +436,22 @@ def get_book_summary_api():
     authors = request.args.get('authors', 'Unknown')
     language = request.args.get('language', 'english')
     slug = request.args.get('slug')
-    
     if not title and not slug:
         return jsonify({"error": "Book title or slug is required"}), 400
-    
-    # Check for existing summary
     if slug:
         try:
             filename = f"{OUTPUT_DIR}/{slug}.md"
             if language != "english":
                 filename = f"{OUTPUT_DIR}/{slug}-{language}.md"
-            
             if os.path.exists(filename):
                 with open(filename, 'r', encoding='utf-8') as f:
                     return f.read()
         except Exception as e:
             logger.error(f"Error reading existing summary: {e}")
-    
-    # Handle authors
     if isinstance(authors, str) and ',' in authors:
         authors = [author.strip() for author in authors.split(',')]
-    
-    # Get book description
     description = request.args.get('description', '')
-    
     try:
-        # Detailed summary generation prompt
         prompt = f"""
 You are a professional book summarizer. Create a comprehensive summary of "{title}" by {', '.join(authors) if isinstance(authors, list) else authors}.
 
@@ -519,11 +462,9 @@ Generate the summary in these clear sections:
 
 The summary should be in {language}, focusing on the book's core message, key themes, and most important insights.
 """
-        
         if description:
             prompt += f"\n\nBook Description: {description}"
-        
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are an expert book summarizer who creates engaging, insightful summaries."},
@@ -531,10 +472,7 @@ The summary should be in {language}, focusing on the book's core message, key th
             ],
             temperature=0.7
         )
-        
         gpt_summary = response.choices[0].message.content
-        
-        # Create slug
         if not slug:
             slug = ''.join(c if c.isalnum() or c.isspace() else '-' for c in title.lower())
             slug = '-'.join(slug.split())
@@ -542,22 +480,13 @@ The summary should be in {language}, focusing on the book's core message, key th
                 slug = slug.replace('--', '-')
             if len(slug) > 100:
                 slug = slug[:100]
-        
-        # Format summary
         formatted_summary = format_summary(title, authors, description, gpt_summary, language)
-        
-        # Ensure output directory exists
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        
-        # Save summary
         filename = f"{OUTPUT_DIR}/{slug}.md"
         if language != "english":
             filename = f"{OUTPUT_DIR}/{slug}-{language}.md"
-        
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(formatted_summary)
-        
-        # Update processed books
         book_id = request.args.get('bookId')
         if book_id:
             book_service.processed_books[book_id] = {
@@ -567,9 +496,7 @@ The summary should be in {language}, focusing on the book's core message, key th
                 'date_processed': datetime.now().isoformat()
             }
             book_service.save_processed_books()
-        
         return formatted_summary
-    
     except Exception as e:
         logger.error(f"Error generating summary: {e}")
         return jsonify({"error": f"Failed to generate summary: {str(e)}"}), 500
@@ -580,18 +507,13 @@ def translate_text_api():
     data = request.json
     if not data:
         return jsonify({"error": "No data provided"}), 400
-    
     text = data.get('text')
     target_language = data.get('language', 'spanish')
-    
     if not text:
         return jsonify({"error": "No text provided"}), 400
-    
-    # Translate text
     try:
         prompt = f"Translate the following text to {target_language}:\n\n{text}"
-        
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a professional translator."},
@@ -599,9 +521,7 @@ def translate_text_api():
             ],
             temperature=0.3
         )
-        
         translated_text = response.choices[0].message.content
-        
         return jsonify({
             "original": text,
             "translated": translated_text,
@@ -668,8 +588,7 @@ def get_categories_api():
                         {"name": "Women's Fiction", "code": "womens+fiction"},
                         {"name": "Men's Fiction", "code": "mens+fiction"}
                     ]
-                },
-                # Add more subcategories as needed
+                }
             ]
         },
         {
@@ -684,8 +603,7 @@ def get_categories_api():
                         {"name": "Motivation", "code": "motivation+self-help"},
                         {"name": "Mindfulness and Meditation", "code": "mindfulness+meditation"}
                     ]
-                },
-                # Add more subcategories as needed
+                }
             ]
         }
     ]
@@ -696,24 +614,18 @@ def get_books_by_category_api():
     """Get books by category from Google Books API"""
     category_code = request.args.get('code')
     page = int(request.args.get('page', 1))
-    limit = min(int(request.args.get('limit', 12)), 40)  # Cap at 40 books max
-    
+    limit = min(int(request.args.get('limit', 12)), 40)
     if not category_code:
         return jsonify({"error": "Category code is required"}), 400
-    
     result = book_service.get_books_by_category(category_code, page, limit)
-    
     return jsonify(result)
 
 @app.route('/api/book/available-languages', methods=['GET'])
 def get_available_languages_for_book():
     """Get available languages for a specific book summary"""
     book_id = request.args.get('id')
-    
     if not book_id:
         return jsonify({"error": "Book ID is required"}), 400
-    
-    # Full list of supported languages
     supported_languages = [
         "english", "spanish", "french", "hindi", "german", 
         "italian", "portuguese", "russian", "japanese", 
@@ -723,12 +635,8 @@ def get_available_languages_for_book():
         "danish", "finnish", "norwegian", "hebrew", "farsi", 
         "malay", "swahili"
     ]
-    
-    # Check which language versions exist
     available_languages = []
     book_slug = None
-    
-    # Find the book's slug by checking processed books
     for id, book_data in book_service.processed_books.items():
         if id == book_id:
             title = book_data.get('title', '')
@@ -739,16 +647,13 @@ def get_available_languages_for_book():
             if len(book_slug) > 100:
                 book_slug = book_slug[:100]
             break
-    
     if book_slug:
         for language in supported_languages:
             filename = f"{OUTPUT_DIR}/{book_slug}.md"
             if language != "english":
                 filename = f"{OUTPUT_DIR}/{book_slug}-{language}.md"
-            
             if os.path.exists(filename):
                 available_languages.append(language)
-    
     return jsonify({"bookId": book_id, "languages": available_languages})
 
 @app.route('/api/book/submit-summary', methods=['POST'])
@@ -757,19 +662,14 @@ def submit_book_summary():
     data = request.json
     if not data:
         return jsonify({"error": "No data provided"}), 400
-    
-    # Extract required fields
     title = data.get('title')
     authors = data.get('authors')
     summary = data.get('summary')
     language = data.get('language', 'english')
     book_id = data.get('bookId')
-    
     if not title or not authors or not summary or not book_id:
         return jsonify({"error": "Missing required fields"}), 400
-    
     try:
-        # Create book object
         book = {
             'id': book_id,
             'title': title,
@@ -777,40 +677,26 @@ def submit_book_summary():
             'thumbnailUrl': data.get('thumbnailUrl', ''),
             'publishedDate': data.get('publishedDate', '')
         }
-        
-        # Create a pending directory for user submissions
         pending_dir = f"{OUTPUT_DIR}/pending"
         os.makedirs(pending_dir, exist_ok=True)
-        
-        # Create a slug for the filename
         slug = ''.join(c if c.isalnum() or c.isspace() else '-' for c in title.lower())
         slug = '-'.join(slug.split())
         while '--' in slug:
             slug = slug.replace('--', '-')
         if len(slug) > 100:
             slug = slug[:100]
-        
-        # Add language suffix for non-English summaries
         if language != "english":
             filename = f"{pending_dir}/{slug}-{language}.md"
         else:
             filename = f"{pending_dir}/{slug}.md"
-        
-        # Format authors
         if isinstance(authors, list):
             author_text = ', '.join(authors)
         else:
             author_text = str(authors)
-        
-        # Generate metadata
         pub_date = datetime.today().strftime('%Y-%m-%d')
         description = f"Summary of the book '{title}' by {author_text}."
-        
-        # Generate tags (simplified)
         tags = ["user-submitted", "pending-review"]
         tags_json = json.dumps(tags)
-        
-        # Compile front matter
         md_content = (
             f"---\n"
             f'title: "{title}"\n'
@@ -822,21 +708,13 @@ def submit_book_summary():
             f'bookId: "{book_id}"\n'
             f'status: "pending"\n'
         )
-        
-        # Add optional fields if available
         if data.get('thumbnailUrl'):
             md_content += f'thumbnailUrl: "{data.get("thumbnailUrl")}"\n'
         if data.get('publishedDate'):
             md_content += f'publishedDate: "{data.get("publishedDate")}"\n'
-        
-        # Close front matter and add summary
         md_content += f"---\n\n{summary}\n"
-        
-        # Save to file
         with open(filename, "w", encoding="utf-8") as f:
             f.write(md_content)
-        
-        # Return success response
         return jsonify({
             "success": True,
             "message": "Summary submitted successfully. It will be reviewed before being published."
@@ -844,10 +722,6 @@ def submit_book_summary():
     except Exception as e:
         logger.error(f"Error submitting summary: {e}")
         return jsonify({"error": f"Error submitting summary: {str(e)}"}), 500
-
-# Main function to run the app
-# Add this right after the other @app.route() definitions, 
-# before the if __name__ == '__main__':' block at the end of the file
 
 @app.route('/')
 def home():
@@ -866,13 +740,7 @@ def home():
         ]
     })
 
-# Then keep the existing if __name__ == '__main__': block as it was
 if __name__ == '__main__':
-    # Ensure output directory exists
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
-    # Create pending directory for user submissions
     os.makedirs(f"{OUTPUT_DIR}/pending", exist_ok=True)
-    
-    # Run the Flask app
     app.run(host='0.0.0.0', port=8000, debug=True)

@@ -144,3 +144,245 @@
 2025-04-07 17:49:34,654 - INFO -  * Restarting with stat
 2025-04-07 17:49:36,798 - WARNING -  * Debugger is active!
 2025-04-07 17:49:36,809 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 18:40:10,221 - INFO - 127.0.0.1 - - [07/Apr/2025 18:40:10] "GET / HTTP/1.1" 200 -
+2025-04-07 18:40:10,376 - INFO - 127.0.0.1 - - [07/Apr/2025 18:40:10] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:49:55,482 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 18:49:55,484 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 18:49:55,509 - INFO -  * Restarting with stat
+2025-04-07 18:50:00,384 - WARNING -  * Debugger is active!
+2025-04-07 18:50:00,422 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 18:50:04,665 - INFO - 127.0.0.1 - - [07/Apr/2025 18:50:04] "GET / HTTP/1.1" 200 -
+2025-04-07 18:50:04,921 - INFO - 127.0.0.1 - - [07/Apr/2025 18:50:04] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:51:18,988 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:18] "GET /api/book/search?query=python&limit=10 HTTP/1.1" 200 -
+2025-04-07 18:51:19,115 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:19] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:51:31,860 - WARNING - Google Books API returned 503 for https://www.googleapis.com/books/v1/volumes/<BOOK_ID>?key=AIzaSyBad75ybTjin0pyxein3j3SvQtk1NOL030
+2025-04-07 18:51:31,865 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:31] "[33mGET /api/book/details?id=<BOOK_ID>&source=Google%20Books HTTP/1.1[0m" 404 -
+2025-04-07 18:51:31,982 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:51:41,052 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 18:51:41,065 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 18:51:41,066 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:41] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 18:51:41,100 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:41] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:51:55,225 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 18:51:55,275 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 18:51:55,278 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:55] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 18:51:55,356 - INFO - 127.0.0.1 - - [07/Apr/2025 18:51:55] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:58:37,479 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 18:58:37,509 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 18:58:37,521 - INFO - 127.0.0.1 - - [07/Apr/2025 18:58:37] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 18:58:37,942 - INFO - 127.0.0.1 - - [07/Apr/2025 18:58:37] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 18:59:38,384 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 18:59:38,386 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 18:59:38,396 - INFO -  * Restarting with stat
+2025-04-07 18:59:43,513 - WARNING -  * Debugger is active!
+2025-04-07 18:59:43,543 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 18:59:52,796 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 18:59:52,799 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 18:59:52,804 - INFO - 127.0.0.1 - - [07/Apr/2025 18:59:52] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 18:59:52,932 - INFO - 127.0.0.1 - - [07/Apr/2025 18:59:52] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:03:23,278 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:03:23,958 - INFO -  * Restarting with stat
+2025-04-07 19:03:29,661 - WARNING -  * Debugger is active!
+2025-04-07 19:03:29,885 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:03:31,816 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:03:31,820 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:03:31,822 - INFO - 127.0.0.1 - - [07/Apr/2025 19:03:31] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:03:32,069 - INFO - 127.0.0.1 - - [07/Apr/2025 19:03:32] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:03:37,069 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:03:37,385 - INFO -  * Restarting with stat
+2025-04-07 19:03:45,040 - WARNING -  * Debugger is active!
+2025-04-07 19:03:45,057 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:04:26,062 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:04:26,476 - INFO -  * Restarting with stat
+2025-04-07 19:04:34,460 - WARNING -  * Debugger is active!
+2025-04-07 19:04:34,480 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:04:35,791 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:04:35,796 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:04:35,801 - INFO - 127.0.0.1 - - [07/Apr/2025 19:04:35] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:04:35,905 - INFO - 127.0.0.1 - - [07/Apr/2025 19:04:35] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:05:50,725 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:05:51,153 - INFO -  * Restarting with stat
+2025-04-07 19:05:56,103 - WARNING -  * Debugger is active!
+2025-04-07 19:05:56,120 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:06:14,057 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:06:14,339 - INFO -  * Restarting with stat
+2025-04-07 19:06:19,106 - WARNING -  * Debugger is active!
+2025-04-07 19:06:19,122 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:06:32,221 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:06:32,626 - INFO -  * Restarting with stat
+2025-04-07 19:06:38,504 - WARNING -  * Debugger is active!
+2025-04-07 19:06:38,520 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:12:21,211 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:12:21,245 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:12:21,263 - INFO - 127.0.0.1 - - [07/Apr/2025 19:12:21] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:12:21,502 - INFO - 127.0.0.1 - - [07/Apr/2025 19:12:21] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:13:53,955 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:13:53,959 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:13:53,962 - INFO - 127.0.0.1 - - [07/Apr/2025 19:13:53] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:13:54,202 - INFO - 127.0.0.1 - - [07/Apr/2025 19:13:54] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:14:13,843 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 19:14:13,844 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 19:14:13,852 - INFO -  * Restarting with stat
+2025-04-07 19:14:18,434 - WARNING -  * Debugger is active!
+2025-04-07 19:14:18,459 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:14:22,690 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:14:22,695 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************lWgA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:14:22,698 - INFO - 127.0.0.1 - - [07/Apr/2025 19:14:22] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:14:22,800 - INFO - 127.0.0.1 - - [07/Apr/2025 19:14:22] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:15:45,169 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 19:15:45,170 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 19:15:45,173 - INFO -  * Restarting with stat
+2025-04-07 19:15:49,118 - WARNING -  * Debugger is active!
+2025-04-07 19:15:49,130 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:16:00,820 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:16:00,823 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:16:00,827 - INFO - 127.0.0.1 - - [07/Apr/2025 19:16:00] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:16:00,941 - INFO - 127.0.0.1 - - [07/Apr/2025 19:16:00] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:21:10,396 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:21:10,924 - INFO -  * Restarting with stat
+2025-04-07 19:21:27,425 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 19:21:27,426 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 19:21:27,433 - INFO -  * Restarting with stat
+2025-04-07 19:21:31,210 - WARNING -  * Debugger is active!
+2025-04-07 19:21:31,228 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:22:13,373 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-04-07 19:22:13,377 - ERROR - Error generating summary: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-04-07 19:22:13,381 - INFO - 127.0.0.1 - - [07/Apr/2025 19:22:13] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:22:13,528 - INFO - 127.0.0.1 - - [07/Apr/2025 19:22:13] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:25:02,010 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:25:02,316 - INFO -  * Restarting with stat
+2025-04-07 19:25:06,391 - WARNING -  * Debugger is active!
+2025-04-07 19:25:06,407 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:25:36,104 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:25:36,391 - INFO -  * Restarting with stat
+2025-04-07 19:25:40,730 - WARNING -  * Debugger is active!
+2025-04-07 19:25:40,747 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:26:42,498 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:26:42,814 - INFO -  * Restarting with stat
+2025-04-07 19:26:46,750 - WARNING -  * Debugger is active!
+2025-04-07 19:26:46,767 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:28:23,096 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:28:23,382 - INFO -  * Restarting with stat
+2025-04-07 19:35:33,513 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 19:35:33,517 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 19:35:33,527 - INFO -  * Restarting with stat
+2025-04-07 19:35:37,702 - WARNING -  * Debugger is active!
+2025-04-07 19:35:37,738 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:43:09,607 - ERROR - Error generating summary: 
+
+You tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.
+
+You can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface. 
+
+Alternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`
+
+A detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742
+
+2025-04-07 19:43:09,642 - INFO - 127.0.0.1 - - [07/Apr/2025 19:43:09] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:43:09,824 - INFO - 127.0.0.1 - - [07/Apr/2025 19:43:09] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:46:57,411 - INFO -  * Detected change in 'C:\\Users\\alime\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python312\\site-packages\\openai\\version.py', reloading
+2025-04-07 19:46:58,152 - INFO -  * Restarting with stat
+2025-04-07 19:47:07,782 - WARNING -  * Debugger is active!
+2025-04-07 19:47:07,825 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:47:09,012 - INFO - error_code=invalid_api_key error_message='Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.' error_param=None error_type=invalid_request_error message='OpenAI API error received' stream_error=False
+2025-04-07 19:47:09,013 - ERROR - Error generating summary: Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.
+2025-04-07 19:47:09,015 - INFO - 127.0.0.1 - - [07/Apr/2025 19:47:09] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:47:09,132 - INFO - 127.0.0.1 - - [07/Apr/2025 19:47:09] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:58:23,037 - INFO - error_code=invalid_api_key error_message='Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.' error_param=None error_type=invalid_request_error message='OpenAI API error received' stream_error=False
+2025-04-07 19:58:23,056 - ERROR - Error generating summary: Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.
+2025-04-07 19:58:23,069 - INFO - 127.0.0.1 - - [07/Apr/2025 19:58:23] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:58:23,374 - INFO - 127.0.0.1 - - [07/Apr/2025 19:58:23] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:58:49,492 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 19:58:49,494 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 19:58:49,498 - INFO -  * Restarting with stat
+2025-04-07 19:58:52,619 - WARNING -  * Debugger is active!
+2025-04-07 19:58:52,676 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 19:59:28,126 - INFO - error_code=invalid_api_key error_message='Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.' error_param=None error_type=invalid_request_error message='OpenAI API error received' stream_error=False
+2025-04-07 19:59:28,128 - ERROR - Error generating summary: Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.
+2025-04-07 19:59:28,132 - INFO - 127.0.0.1 - - [07/Apr/2025 19:59:28] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:59:28,253 - INFO - 127.0.0.1 - - [07/Apr/2025 19:59:28] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:59:33,860 - INFO - error_code=invalid_api_key error_message='Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.' error_param=None error_type=invalid_request_error message='OpenAI API error received' stream_error=False
+2025-04-07 19:59:33,861 - ERROR - Error generating summary: Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.
+2025-04-07 19:59:33,863 - INFO - 127.0.0.1 - - [07/Apr/2025 19:59:33] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 19:59:33,951 - INFO - 127.0.0.1 - - [07/Apr/2025 19:59:33] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 19:59:49,470 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 19:59:49,643 - INFO -  * Restarting with stat
+2025-04-07 19:59:53,460 - WARNING -  * Debugger is active!
+2025-04-07 19:59:53,477 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:00:14,534 - INFO - error_code=invalid_api_key error_message='Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.' error_param=None error_type=invalid_request_error message='OpenAI API error received' stream_error=False
+2025-04-07 20:00:14,535 - ERROR - Error generating summary: Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.
+2025-04-07 20:00:14,564 - INFO - 127.0.0.1 - - [07/Apr/2025 20:00:14] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 20:00:14,882 - INFO - 127.0.0.1 - - [07/Apr/2025 20:00:14] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 20:00:33,992 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 20:00:33,992 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 20:00:33,999 - INFO -  * Restarting with stat
+2025-04-07 20:00:36,963 - WARNING -  * Debugger is active!
+2025-04-07 20:00:36,983 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:01:14,110 - INFO - error_code=invalid_api_key error_message='Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.' error_param=None error_type=invalid_request_error message='OpenAI API error received' stream_error=False
+2025-04-07 20:01:14,111 - ERROR - Error generating summary: Incorrect API key provided: sk-ADss0***************************************************************************************************************************************************S1UA. You can find your API key at https://platform.openai.com/account/api-keys.
+2025-04-07 20:01:14,116 - INFO - 127.0.0.1 - - [07/Apr/2025 20:01:14] "[35m[1mGET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1[0m" 500 -
+2025-04-07 20:01:14,326 - INFO - 127.0.0.1 - - [07/Apr/2025 20:01:14] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 20:03:31,183 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 20:03:31,916 - INFO -  * Restarting with stat
+2025-04-07 20:03:37,967 - WARNING -  * Debugger is active!
+2025-04-07 20:03:38,018 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:03:51,992 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 20:03:52,162 - INFO -  * Restarting with stat
+2025-04-07 20:03:55,147 - WARNING -  * Debugger is active!
+2025-04-07 20:03:55,163 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:04:12,679 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 20:04:12,873 - INFO -  * Restarting with stat
+2025-04-07 20:04:15,599 - WARNING -  * Debugger is active!
+2025-04-07 20:04:15,614 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:06:12,054 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.20.10.6:8000
+2025-04-07 20:06:12,055 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-07 20:06:12,060 - INFO -  * Restarting with stat
+2025-04-07 20:06:14,961 - WARNING -  * Debugger is active!
+2025-04-07 20:06:14,974 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:06:30,293 - INFO - 127.0.0.1 - - [07/Apr/2025 20:06:30] "GET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1" 200 -
+2025-04-07 20:06:30,652 - INFO - 127.0.0.1 - - [07/Apr/2025 20:06:30] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-07 20:09:17,739 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 20:09:18,414 - INFO -  * Restarting with stat
+2025-04-07 20:09:25,407 - WARNING -  * Debugger is active!
+2025-04-07 20:09:25,500 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:09:33,036 - INFO - 127.0.0.1 - - [07/Apr/2025 20:09:33] "GET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=english HTTP/1.1" 200 -
+2025-04-07 20:14:47,969 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 20:14:48,439 - INFO -  * Restarting with stat
+2025-04-07 20:14:53,337 - WARNING -  * Debugger is active!
+2025-04-07 20:14:53,391 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:43:49,206 - INFO - 127.0.0.1 - - [07/Apr/2025 20:43:49] "GET /api/languages HTTP/1.1" 200 -
+2025-04-07 20:44:01,478 - INFO - 127.0.0.1 - - [07/Apr/2025 20:44:01] "GET /api/languages HTTP/1.1" 200 -
+2025-04-07 20:44:48,423 - INFO - 127.0.0.1 - - [07/Apr/2025 20:44:48] "GET /api/book/summary?title=The%20Great%20Gatsby&authors=F.%20Scott%20Fitzgerald&language=spanish HTTP/1.1" 200 -
+2025-04-07 20:44:51,805 - INFO - 127.0.0.1 - - [07/Apr/2025 20:44:51] "GET /api/languages HTTP/1.1" 200 -
+2025-04-07 20:46:57,254 - INFO -  * Detected change in 'C:\\Users\\alime\\book-summaries\\backend\\book.summarizer\\app.py', reloading
+2025-04-07 20:46:59,218 - INFO -  * Restarting with stat
+2025-04-07 20:47:05,596 - WARNING -  * Debugger is active!
+2025-04-07 20:47:05,653 - INFO -  * Debugger PIN: 110-726-745
+2025-04-07 20:48:07,513 - INFO - 127.0.0.1 - - [07/Apr/2025 20:48:07] "GET /api/languages HTTP/1.1" 200 -
+2025-04-07 20:48:48,044 - INFO - 127.0.0.1 - - [07/Apr/2025 20:48:48] "GET /api/languages HTTP/1.1" 200 -

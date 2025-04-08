@@ -1,5 +1,6 @@
 ---
 // src/pages/books/[slug].astro
+
 // import { useTranslations } from "astro-i18n"; // Comment this out temporarily
 import BlogPost from '../../layouts/BlogPost.astro';
 import BookSummary from '../../components/BookSummary.jsx';
@@ -18,10 +19,10 @@ const t = (key, vars = {}) => {
 
 // Add this function to generate the static paths
 export async function getStaticPaths() {
-  // You can return all possible slug values here
-  // For now, let's return a placeholder that will be replaced at runtime
+  // In a production site, you'll want to return all possible slugs from your collection.
+  // Here we return a placeholder that should be replaced or updated with your actual logic.
   return [
-    { params: { slug: 'placeholder' } }
+    { params: { slug: 'the-great-gatsby' } }
   ];
 }
 
@@ -52,7 +53,8 @@ async function getBookData(slug, lang) {
     // Look for the specific language version if not English
     let fileName = `/public/summaries/${slug}.md`;
     if (lang !== 'en') {
-      fileName = `/public/summaries/${slug}-${lang === 'en' ? 'english' : lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi'}.md`;
+      // Adjust mapping for language codes as needed
+      fileName = `/public/summaries/${slug}-${lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi'}.md`;
     }
     
     // Check if the file exists
@@ -67,29 +69,8 @@ async function getBookData(slug, lang) {
       };
     }
     
-// If not found locally, try fetching from API 
-// Avoid making API calls during build time
-const isBrowser = typeof window !== 'undefined';
-const apiUrl = isBrowser 
-  ? (import.meta.env.PUBLIC_API_URL || 'http://localhost:8000')
-  : 'https://api.example.com'; // Use a placeholder during build
-const apiLang = lang === 'en' ? 'english' : lang === 'es' ? 'spanish' : lang === 'fr' ? 'french' : 'hindi';
-
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        title: data.title,
-        author: data.authors,
-        summary: data.summary,
-        thumbnailUrl: data.thumbnailUrl,
-        publishedDate: data.publishedDate,
-        tags: data.tags || [],
-        category: data.category,
-        bookId: data.bookId,
-        slug
-      };
-    }
-    
+    // If not found locally, optionally try fetching from an API.
+    // (Avoid making API calls during build time.)
     return null;
   } catch (error) {
     console.error('Error fetching book data:', error);
@@ -108,7 +89,6 @@ function getUserLevel(points) {
       break;
     }
   }
-  
   return currentLevel;
 }
 
@@ -297,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEventListeners() {
-  // Add event listeners as needed
   document.querySelectorAll(".read-btn").forEach(btn => {
     btn.addEventListener("click", function(e) {
       e.preventDefault();
@@ -333,7 +312,6 @@ function updateUserStats() {
       const pointsNeededForNextLevel = nextLevel.minPoints - currentLevel.minPoints;
       progressPercent = Math.min(100, (pointsForCurrentLevel / pointsNeededForNextLevel) * 100);
     } else {
-      // Already at max level
       progressPercent = 100;
     }
     
@@ -365,16 +343,13 @@ function updateUserStats() {
 }
 
 function getUserLevel(points) {
-  // Find the highest level that the user qualifies for
-  let currentLevel = readerLevels[0]; // Default to first level
-  
+  let currentLevel = readerLevels[0];
   for (let i = readerLevels.length - 1; i >= 0; i--) {
     if (points >= readerLevels[i].minPoints) {
       currentLevel = readerLevels[i];
       break;
     }
   }
-  
   return currentLevel;
 }
 
@@ -383,11 +358,8 @@ function updateBadges(userStats) {
   if (!badgesContainer) return;
   
   badgesContainer.innerHTML = '';
-  
-  // Generate badges based on achievements
   const badges = [];
   
-  // Reader badges
   if (userStats.booksRead >= 1) {
     badges.push({ name: "First Book Read", icon: "📚" });
   }
@@ -401,7 +373,6 @@ function updateBadges(userStats) {
     badges.push({ name: "Book Master", icon: "🏆" });
   }
   
-  // Points badges
   if (userStats.points >= 100) {
     badges.push({ name: "Century Club", icon: "💯" });
   }
@@ -412,7 +383,6 @@ function updateBadges(userStats) {
     badges.push({ name: "Intellectual", icon: "🎓" });
   }
   
-  // Activity badges
   if (userStats.booksBookmarked >= 5) {
     badges.push({ name: "Curator", icon: "🔖" });
   }
@@ -420,7 +390,6 @@ function updateBadges(userStats) {
     badges.push({ name: "Critic", icon: "⭐" });
   }
   
-  // Add badges to UI
   badges.forEach(badge => {
     const badgeElement = document.createElement("span");
     badgeElement.className = "badge-tooltip";
@@ -446,25 +415,17 @@ function toggleReadStatus(slug, button) {
     if (!userStats.booksRead) userStats.booksRead = 0;
     
     if (userStats.readBooks.includes(slug)) {
-      // Remove from read books
       userStats.readBooks = userStats.readBooks.filter(id => id !== slug);
       button.textContent = "Mark Read";
       button.classList.remove("read");
-      
-      // Reduce points (minimum 0)
       userStats.points = Math.max(0, userStats.points - 10);
       userStats.booksRead = Math.max(0, userStats.booksRead - 1);
     } else {
-      // Add to read books
       userStats.readBooks.push(slug);
       button.textContent = "Read";
       button.classList.add("read");
-      
-      // Award points
       userStats.points += 10;
       userStats.booksRead++;
-      
-      showNotification("🎉 +10 points for reading!");
     }
     
     localStorage.setItem("userStats", JSON.stringify(userStats));

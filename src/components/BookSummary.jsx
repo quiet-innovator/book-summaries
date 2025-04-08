@@ -1,4 +1,3 @@
-// src/components/BookSummary.jsx
 import React, { useState, useEffect } from 'react';
 
 export default function BookSummary({ bookData }) {
@@ -10,12 +9,14 @@ export default function BookSummary({ bookData }) {
   
   const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
 
+  // Use the "pubDate" field if publishedDate is not available.
+  const publishedDate = bookData.publishedDate || bookData.pubDate || '';
+
   // Fetch available languages for this book
   useEffect(() => {
     const fetchAvailableLanguages = async () => {
       try {
         const response = await fetch(`${API_URL}/api/languages`);
-        
         if (response.ok) {
           const data = await response.json();
           setAvailableLanguages(data.languages);
@@ -49,11 +50,7 @@ export default function BookSummary({ bookData }) {
   // Handle language change
   const handleLanguageChange = async (e) => {
     const newLanguage = e.target.value;
-    
-    // If language is the same as current, do nothing
-    if (newLanguage === currentLanguage) {
-      return;
-    }
+    if (newLanguage === currentLanguage) return;
     
     setIsTranslating(true);
     setError('');
@@ -99,8 +96,10 @@ export default function BookSummary({ bookData }) {
           <h1>{bookData.title}</h1>
           <p className="author">By {bookData.author}</p>
           
-          {bookData.publishedDate && (
-            <p className="published-date">Published: {bookData.publishedDate}</p>
+          {publishedDate ? (
+            <p className="published-date">Published: {publishedDate}</p>
+          ) : (
+            <p className="published-date">No date available</p>
           )}
           
           {bookData.tags && bookData.tags.length > 0 && (
@@ -137,7 +136,9 @@ export default function BookSummary({ bookData }) {
       
       <div className="summary-content">
         {isTranslating ? (
-          <div className="loading-indicator">Translating summary to {availableLanguages.find(l => l.code === currentLanguage)?.name || currentLanguage}...</div>
+          <div className="loading-indicator">
+            Translating summary to {availableLanguages.find(l => l.code === currentLanguage)?.name || currentLanguage}...
+          </div>
         ) : (
           <div dangerouslySetInnerHTML={{ __html: summary.replace(/\n\n/g, '<br><br>') }} />
         )}
