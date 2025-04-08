@@ -5,30 +5,70 @@ import Footer from '../components/Footer.astro';
 import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 ---
 
-<Layout
-  title="About Minute Reads"
-  description="Quick and insightful book summaries"
-  pubDate={new Date('2025-04-04')}
-  heroImage="/hero image about minute reads.jpg"
->
-
-  <p style="margin-top: 1rem;"><strong>Contact us:</strong> <a href="mailto:team@brainymedia.com">team@brainymedia.com</a></p>
-
- <strong></strong>
- <p>We were sick and tired of spending hours reading books just to learn something that could have been summarized in a few paragraphs, so we decided to create minutereads.io to fix that.</p>
-
-  <p>Minute Reads helps you <strong>learn more in less time</strong> by delivering quick, high-quality book summaries that save you hours. Our mission is to make knowledge more accessible by condensing the best ideas from books across business, self-improvement, and productivity into easy-to-digest reads.</p>
-
-  <p>But we’re just getting started.</p>
-
-  <p>Our long-term goal is to become the go-to platform for summarizing <strong>all forms of content</strong>—not just books. This includes:</p>
-
-  <ul>
-    <li><strong>University textbooks</strong></li>
-    <li><strong>Research papers</strong></li>
-    <li><strong>Podcasts</strong></li>
-    <li><strong>Financial documents</strong></li>
-  </ul>
-
-  <p>Whether you're a student, professional, investor, or curious mind, Minute Reads is here to help you <strong>stay informed, save time, and learn fast</strong>.</p>
-
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <BaseHead title="About | Minute Reads" description="Quick and insightful book summaries" />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="about-container">
+        <h1>About Minute Reads</h1>
+        
+        <p><strong>Contact us:</strong> <a href="mailto:team@brainymedia.com">team@brainymedia.com</a></p>
+        
+        <p>We were sick and tired of spending hours reading books just to learn something that could have been summarized in a few paragraphs, so we decided to create minutereads.io to fix that.</p>
+        
+        <p>Minute Reads helps you <strong>learn more in less time</strong> by delivering quick, high-quality book summaries that save you hours. Our mission is to make knowledge more accessible by condensing the best ideas from books across business, self-improvement, and productivity into easy-to-digest reads.</p>
+        
+        <p>But we're just getting started.</p>
+        
+        <p>Our long-term goal is to become the go-to platform for summarizing <strong>all forms of content</strong>—not just books. This includes:</p>
+        
+        <ul>
+          <li><strong>University textbooks</strong></li>
+          <li><strong>Research papers</strong></li>
+          <li><strong>Podcasts</strong></li>
+          <li><strong>Financial documents</strong></li>
+        </ul>
+        
+        <p>Whether you're a student, professional, investor, or curious mind, Minute Reads is here to help you <strong>stay informed, save time, and learn fast</strong>.</p>
+      </div>
+    </main>
+    <Footer />
+    
+    <style>
+      main {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 1rem;
+      }
+      
+      .about-container {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 2rem;
+      }
+      
+      h1 {
+        margin-bottom: 2rem;
+      }
+      
+      p {
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+      
+      ul {
+        margin-bottom: 1.5rem;
+        padding-left: 2rem;
+      }
+      
+      li {
+        margin-bottom: 0.5rem;
+      }
+    </style>
+  </body>
+</html>
