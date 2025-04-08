@@ -1,0 +1,36 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <BaseHead title="Debug Page | Minute Reads" description="Testing routing" />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div style="max-width: 800px; margin: 4rem auto; padding: 2rem;">
+        <h1>Debug Page</h1>
+        <p>If you can see this page, routing is working for new pages.</p>
+        
+        <h2>Test Links</h2>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/about">About</a></li>
+          <li><a href="/newsletter">Newsletter</a></li>
+        </ul>
+        
+        <h2>Current URL Info</h2>
+        <pre>{JSON.stringify({
+          pathname: Astro.url.pathname,
+          origin: Astro.url.origin,
+          host: Astro.url.host,
+        }, null, 2)}</pre>
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>

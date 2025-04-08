@@ -7,7 +7,7 @@ export interface Props {
 const { href } = Astro.props;
 const currentPath = Astro.url.pathname;
 
-// Simple direct comparison - pathname exactly matches href
+// Simple direct comparison
 const isActive = currentPath === href || 
                 (href === '/' && (currentPath === '' || currentPath === '/')) || 
                 (href !== '/' && currentPath.startsWith(href));
@@ -16,3 +16,20 @@ const isActive = currentPath === href ||
 <a href={href} class:list={[{ active: isActive }]}>
   <slot />
 </a>
+
+<style>
+  a {
+    display: inline-block;
+    text-decoration: none;
+    color: black; /* Explicit black color */
+  }
+  a.active {
+    font-weight: bolder;
+    text-decoration: underline;
+  }
+  
+  /* Dark mode compatibility - only if you need it */
+  :global(body.dark) a {
+    color: white;
+  }
+</style>
